@@ -1,0 +1,10 @@
+﻿const fs = require('fs');
+const file = './public/index.html';
+let c = fs.readFileSync(file, 'utf8');
+const before = (c.match(/<script src="\/packages\.js">/g) || []).length;
+console.log('修复前次数:', before);
+c = c.replace(/<script src="\/packages\.js">/g, '<script src="/packages.js"></script>');
+const after = (c.match(/<script src="\/packages\.js">/g) || []).length;
+console.log('修复后次数:', after);
+fs.writeFileSync(file, c, 'utf8');
+console.log('✅ 已写入');

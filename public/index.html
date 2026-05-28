@@ -175,14 +175,9 @@ async function loadUnreadCount(){
 const _origRenderNotif = renderNotifications;
 // 每30秒轮询一次
 setInterval(loadUnreadCount, 30000);
-// 登录后启动轮询（checkAuth 如存在则包装）
-if (typeof checkAuth !== 'undefined') {
-  const _origCheckAuth = checkAuth;
-  checkAuth = function(){
-    const r = _origCheckAuth.apply(this, arguments);
-    loadUnreadCount();
-    return r;
-  };
+// 登录后启动轮询（checkAuth 占位，避免报错）
+function checkAuth() {
+  loadUnreadCount();
 }
 </script>
 

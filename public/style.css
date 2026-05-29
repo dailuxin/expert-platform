@@ -19,6 +19,11 @@ nav .nav-right button { background:rgba(255,255,255,.2); color:#fff; border:none
 .hero select { padding:12px; border:none; border-radius:10px; font-size:15px; }
 .hero button { padding:12px 28px; border:none; border-radius:10px; background:#fff; color:#667eea; font-weight:700; font-size:15px; cursor:pointer; }
 .section-title { font-size:20px; font-weight:700; margin-bottom:18px; }
+.industry-icons { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.industry-icon-item { display:flex; flex-direction:column; align-items:center; gap:6px; background:#fff; border:2px solid #e2e8f0; border-radius:12px; padding:14px 12px; min-width:72px; flex:1; cursor:pointer; transition:all .2s; font-size:13px; color:#555; }
+.industry-icon-item:hover { border-color:#667eea; color:#667eea; background:#f0f3ff; transform:translateY(-2px); box-shadow:0 4px 12px rgba(102,126,234,.15); }
+.industry-icon-item .icon { font-size:28px; line-height:1; }
+.industry-icon-item .label { font-weight:600; text-align:center; }
 .expert-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; }
 .expert-card { background:#fff; border-radius:14px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,.06); transition:all .25s; cursor:pointer; position:relative; }
 .expert-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(0,0,0,.12); }

@@ -309,6 +309,12 @@ async function initDB() {
   )`);
 run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, amount INTEGER DEFAULT 20, min_amount INTEGER DEFAULT 0, status TEXT DEFAULT \'active\', created_at TEXT DEFAULT (datetime(\'now\')), used_at TEXT)');
 
+  // P2: 公告表
+  run('CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT DEFAULT (datetime(\'now\')))');
+
+  // P2: 操作日志表
+  run('CREATE TABLE IF NOT EXISTS operation_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT, action TEXT, target_type TEXT, target_id INTEGER, detail TEXT, ip TEXT, created_at TEXT DEFAULT (datetime(\'now\')))');
+
 
   // Add expires_at to bookings for auto-cancel (P0 #3)
   try { db.run(`ALTER TABLE bookings ADD COLUMN expires_at TEXT`); } catch(e) {}

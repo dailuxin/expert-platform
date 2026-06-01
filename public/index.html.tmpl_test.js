@@ -1,39 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>专家平台</title>
-<link rel="stylesheet" href="/style.css">
-<link rel="stylesheet" href="/p1p2_style.css">
-<script src="/packages.js"></script>
-<script>
-// 给 renderExpertDetail 注入评价区
-const _origRenderExpertDetail = renderExpertDetail;
-renderExpertDetail = function(id) {
-  _origRenderExpertDetail(id);
-  // 等 DOM 更新后注入评价
-  setTimeout(() => injectReviews(id), 100);
-};
-</script>
-<script src="/rating.js"></script>
-<script src="/push.js"></script><script src="/schedule.js"></script><script src="/booking_slots.js"></script><script src="/ws_client.js"></script>
-<script src="/p1p2_features.js"></script>
-  </head>
-<body>
-<nav>
-  <div class="logo">专家平台</div>
-  <div class="nav-links" id="navLinks"></div>
-  <div class="nav-right" id="navRight"></div>
-</nav>
-<div class="container" id="app"></div>
-<div class="modal-mask" id="modal" style="display:none">
-  <div class="modal-box" id="modalBox">
-    <button class="close-btn" onclick="closeModal()">&times;</button>
-    <div id="modalContent"></div>
-  </div>
-</div>
-<script>
+
 let API="/api", currentUser=null, currentExpert=null, currentStars=0, msgTargetId=null, currentExpertDetail=null, urlIndustry=null;
 const ORDER_STATUS={pending_payment:"待支付",paid:"已支付",confirmed:"已确认",completed:"已完成",cancelled:"已取消",refunding:"退款中",refunded:"已退款"};
 function escHtml(s){return s?String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):"";}
@@ -212,4 +177,3 @@ async function claimCoupon(){if(!currentUser){showLogin();return;}try{var r=awai
 
 function showSkeleton(){var el=document.getElementById("expertList");if(!el)return;var h="";for(var i=0;i<6;i++)h+='<div class="skeleton-card"><div class="skeleton skeleton-circle"></div><div class="skeleton skeleton-line medium"></div><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line medium"></div><div class="skeleton skeleton-line short"></div></div>';el.innerHTML=h;}
 function addFloatingCTA(expertId,expertName){var old=document.getElementById("floatingCTA");if(old)old.remove();var div=document.createElement("div");div.id="floatingCTA";div.className="cta-float-bar";div.innerHTML='<div class="cta-info"><span class="cta-name">'+escHtml(expertName||"专家")+'</span><span class="cta-hint">立即预约咨询</span></div><button class="btn btn-primary" onclick="showBooking('+expertId+')">立即预约</button><button class="cta-close" onclick="document.getElementById(\'floatingCTA\').remove()">×</button>';document.body.appendChild(div);}
-</script>

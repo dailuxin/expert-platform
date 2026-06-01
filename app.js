@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const { initDB, query, get, run, save, sanitize, sanitizeObj } = require('./database.js');
 const emailService = require('./emailService');
 const pushService = require('./pushService');
@@ -794,11 +796,57 @@ app.post('/api/coupons/claim', requireAuth, (req, res) => {
 
 // P0 features: schedule, order-linked reviews, auto-cancel
 require('./p0_routes.js')(app, requireAuth, requireExpert, sanitizeObj);
+
+// P1+P2+P3 features
+const p1p2Routes = require('./p1_p2_routes.js');
+app.use('/api', p1p2Routes);
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 initDB().then(() => {
+  // ===== WebSocket 实时通知服务器 (P1) =====
+  const server = http.createServer(app);
+  const wss = new WebSocketServer({ server });
+
+  // 存储在线连接 { userId: ws }
+  const onlineUsers = new Map();
+
+  wss.on('connection', (ws, req) => {
+    let userId = null;
+    // 从 session 解析 userId（简易方案：前端连接时发送 userId）
+    ws.on('message', (msg) => {
+      try {
+        const data = JSON.parse(msg);
+        if (data.type === 'auth' && data.userId) {
+          userId = data.userId;
+          onlineUsers.set(userId, ws);
+          ws.send(JSON.stringify({ type: 'connected', userId }));
+          console.log('[WS] 用户上线:', userId);
+        }
+        if (data.type === 'mark_read' && data.notificationId) {
+          run('UPDATE notifications SET is_read = 1 WHERE id = ?', [data.notificationId]);
+        }
+      } catch(e) {}
+    });
+    ws.on('close', () => {
+      if (userId) { onlineUsers.delete(userId); console.log('[WS] 用户离线:', userId); }
+    });
+  });
+
+  // 实时推送通知的辅助函数（供各 API 调用）
+  function pushNotification(userId, notification) {
+    const ws = onlineUsers.get(userId);
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'notification', data: notification }));
+      return true;
+    }
+    return false; // 用户离线，走原有轮询
+  }
+  app.set('pushNotification', pushNotification);
+  app.set('onlineUsers', onlineUsers);
+
   // 订单超时自动取消 (P0 #3)
   function cancelExpiredOrders() {
     const now = new Date().toISOString();
@@ -824,8 +872,8 @@ initDB().then(() => {
   setInterval(cancelExpiredOrders, 5 * 60 * 1000);
   cancelExpiredOrders();
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`专家平台已启动: http://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`专家平台已启动: http://localhost:${PORT} (WebSocket ON)`);
   });
 }).catch(err => {
   console.error('数据库初始化失败:', err);

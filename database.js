@@ -307,6 +307,8 @@ async function initDB() {
     FOREIGN KEY (expert_id) REFERENCES experts(id) ON DELETE CASCADE,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
   )`);
+run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, amount INTEGER DEFAULT 20, min_amount INTEGER DEFAULT 0, status TEXT DEFAULT \'active\', created_at TEXT DEFAULT (datetime(\'now\')), used_at TEXT)');
+
 
   // Add expires_at to bookings for auto-cancel (P0 #3)
   try { db.run(`ALTER TABLE bookings ADD COLUMN expires_at TEXT`); } catch(e) {}

@@ -113,11 +113,14 @@ app.get('/api/push/vapid-key', (req, res) => {
 
 // ===== Experts =====
 app.get('/api/experts', (req, res) => {
-  const { industry, keyword, page = 1, limit = 12 } = req.query;
+  const { industry, keyword, page = 1, limit = 12, min_price, max_price, min_rating } = req.query;
   const offset = (page - 1) * limit;
   let where = 'WHERE e.audit_status = "approved"', params = [];
   if (industry) { where += ' AND e.industry = ?'; params.push(industry); }
-  if (keyword) { where += ' AND (e.title LIKE ? OR u.real_name LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%'); }
+  if (keyword) { where += ' AND (e.title LIKE ? OR u.real_name LIKE ?)'; params.push('%' + keyword + '%', '%' + keyword + '%');
+  if (min_price) { where += ' AND e.consult_fee >= ?'; params.push(Number(min_price)); }
+  if (max_price) { where += ' AND e.consult_fee <= ?'; params.push(Number(max_price)); }
+  if (min_rating) { where += ' AND e.avg_rating >= ?'; params.push(Number(min_rating)); } }
   const sql = `SELECT e.id, e.user_id, e.industry, e.title, e.self_intro, e.photo_path, e.verified, e.avg_rating, e.review_count, e.consult_fee, e.available, u.real_name, u.phone FROM experts e JOIN users u ON e.user_id = u.id ${where} ORDER BY e.avg_rating DESC, e.review_count DESC LIMIT ? OFFSET ?`;
   const rows = query(sql, [...params, limit, offset]);
   const countRow = get(`SELECT COUNT(*) as total FROM experts e JOIN users u ON e.user_id = u.id ${where}`, params);
@@ -773,6 +776,22 @@ app.get('/api/experts/:id/packages', (req, res) => {
 
 // Expert rating & ranking routes
 require('./routes/rating.js')(app, requireAuth, requireExpert);
+
+// ===== Coupons =====
+app.get('/api/coupons/mine', requireAuth, (req, res) => {
+  const list = query('SELECT * FROM coupons WHERE user_id = ? ORDER BY created_at DESC', [req.session.userId]);
+  res.json({ list });
+});
+
+app.post('/api/coupons/claim', requireAuth, (req, res) => {
+  const existing = get('SELECT id FROM coupons WHERE user_id = ? AND status = ?', [req.session.userId, 'active']);
+  if (existing) return res.json({ error: '您已领取过优惠券' });
+  const count = get('SELECT COUNT(*) as c FROM coupons WHERE status = ?', ['active']);
+  if (count && count.c >= 500) return res.json({ error: '优惠券已抢完' });
+  run('INSERT INTO coupons (user_id, amount, min_amount, status) VALUES (?, 20, 0, ?)', [req.session.userId, 'active']);
+  res.json({ success: true });
+});
+
 // P0 features: schedule, order-linked reviews, auto-cancel
 require('./p0_routes.js')(app, requireAuth, requireExpert, sanitizeObj);
 app.get('*', (req, res) => {

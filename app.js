@@ -109,7 +109,7 @@ app.post('/api/push/unsubscribe', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/push/vapid-key', (req, res) => {
+app.get('/api/push/vapid-public-key', (req, res) => {
   res.json({ publicKey: pushService.VAPID_KEYS.publicKey });
 });
 
@@ -800,6 +800,8 @@ require('./p0_routes.js')(app, requireAuth, requireExpert, sanitizeObj);
 // P1+P2+P3 features
 const p1p2Routes = require('./p1_p2_routes.js');
 app.use('/api', p1p2Routes);
+const paymentHomeRoutes = require('./payment_home_routes.js');
+app.use('/api', paymentHomeRoutes);
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

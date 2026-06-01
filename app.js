@@ -11,7 +11,7 @@ const emailService = require('./emailService');
 const pushService = require('./pushService');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 

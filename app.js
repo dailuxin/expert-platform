@@ -802,6 +802,8 @@ const p1p2Routes = require('./p1_p2_routes.js');
 app.use('/api', p1p2Routes);
 const paymentHomeRoutes = require('./payment_home_routes.js');
 app.use('/api', paymentHomeRoutes);
+const registerTaskRoutes = require('./register_task_routes.js');
+app.use('/api', registerTaskRoutes);
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

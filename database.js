@@ -22,8 +22,13 @@ async function initDB() {
     real_name TEXT DEFAULT '',
     phone TEXT DEFAULT '',
     email TEXT DEFAULT '',
-    role TEXT DEFAULT 'user' CHECK(role IN ('admin','user')),
-    status TEXT DEFAULT 'active' CHECK(status IN ('active','disabled')),
+    role TEXT DEFAULT 'user' CHECK(role IN ('admin','user','expert','company')),
+    audit_remark TEXT DEFAULT '',
+    id_card_front TEXT DEFAULT '',
+    id_card_back TEXT DEFAULT '',
+    emergency_contact TEXT DEFAULT '',
+    emergency_phone TEXT DEFAULT '',
+    status TEXT DEFAULT 'active' CHECK(status IN ('active','disabled','pending_review')),
     login_attempts INTEGER DEFAULT 0,
     locked_until INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
@@ -59,6 +64,59 @@ async function initDB() {
     expert_id INTEGER NOT NULL,
     photo_path TEXT NOT NULL,
     FOREIGN KEY (expert_id) REFERENCES experts(id) ON DELETE CASCADE
+  )`);
+
+  // Companies table
+  db.run(`CREATE TABLE IF NOT EXISTS companies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE NOT NULL,
+    company_name TEXT NOT NULL,
+    business_license TEXT DEFAULT '',
+    business_scope TEXT DEFAULT '',
+    contact_person TEXT DEFAULT '',
+    contact_phone TEXT DEFAULT '',
+    contact_email TEXT DEFAULT '',
+    address TEXT DEFAULT '',
+    audit_status TEXT DEFAULT 'pending' CHECK(audit_status IN ('pending','approved','rejected','resubmit')),
+    audit_remark TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )`);
+
+  // Tasks (任务发布) table
+  db.run(`CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    publisher_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    category TEXT DEFAULT '',
+    budget_min REAL DEFAULT 0,
+    budget_max REAL DEFAULT 0,
+    deadline TEXT DEFAULT '',
+    requirements TEXT DEFAULT '',
+    attachments TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending_review' CHECK(status IN ('pending_review','published','paused','completed','rejected','cancelled')),
+    reject_reason TEXT DEFAULT '',
+    reviewer_id INTEGER DEFAULT 0,
+    reviewed_at TEXT,
+    view_count INTEGER DEFAULT 0,
+    applicant_count INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (publisher_id) REFERENCES users(id)
+  )`);
+
+  // Task applicants
+  db.run(`CREATE TABLE IF NOT EXISTS task_applicants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL,
+    applicant_id INTEGER NOT NULL,
+    proposal TEXT DEFAULT '',
+    proposed_budget REAL DEFAULT 0,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','accepted','rejected')),
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (applicant_id) REFERENCES users(id)
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS login_logs (

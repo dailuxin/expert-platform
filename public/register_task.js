@@ -147,6 +147,26 @@ function renderRegisterPage() {
           </div>
         </div>
 
+        <!-- 免责声明 -->
+        <div class="disclaimer-box">
+          <label class="disclaimer-label">
+            <input type="checkbox" id="regAgree" required>
+            <span>我已阅读并同意<a href="#" onclick="event.preventDefault();showRegDisclaimer()">《服务条款与免责声明》</a></span>
+          </label>
+          <div id="regDisclaimerText" class="disclaimer-content" style="display:none">
+            <strong>服务条款与免责声明</strong><br><br>
+            1. 本平台仅提供信息展示与对接服务，不对专家的专业资质、服务效果作任何保证。<br>
+            2. 用户与专家之间的咨询行为及产生的后果由双方自行负责，平台不承担任何连带责任。<br>
+            3. 预约成功后请按时参加，如需取消请提前操作，费用按平台退款规则处理。<br>
+            4. 专家发布的文章和观点仅代表专家本人，不代表本平台立场。<br>
+            5. 用户需保证所填信息真实有效，不得利用平台从事违法活动。<br>
+            6. 平台保留对违规账号封禁和相关服务调整的权利。<br>
+            7. 如有争议，平台保留最终解释权。<br>
+            8. 企业用户和入驻专家需经过实名认证和资质审核，审核通过后方可使用相关功能。<br>
+            9. 任务发布需符合法律法规，禁止发布赌博、代开发票、刷单、洗钱等违法违规任务。
+          </div>
+        </div>
+
         <button type="submit" class="reg-btn" id="regBtn">注册</button>
         <div class="reg-switch">已有账号？<a href="#" onclick="navigate('login');return false">立即登录</a></div>
       </form>
@@ -180,6 +200,14 @@ function previewMultiUpload(input, previewId) {
 
 function handleRegister(e) {
   e.preventDefault();
+  
+  // 检查免责声明勾选
+  const agreeCheckbox = document.getElementById('regAgree');
+  if (!agreeCheckbox.checked) {
+    alert('请先阅读并同意《服务条款与免责声明》');
+    return;
+  }
+  
   const form = document.getElementById('registerForm');
   const btn = document.getElementById('regBtn');
   btn.disabled = true;
@@ -200,6 +228,14 @@ function handleRegister(e) {
     })
     .catch(err => alert('网络错误'))
     .finally(() => { btn.disabled = false; btn.textContent = '注册'; });
+}
+
+function showRegDisclaimer() {
+  const el = document.getElementById('regDisclaimerText');
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (el.style.display === 'block') el.scrollIntoView({ behavior: 'smooth' });
+  }
 }
 
 // ========== 任务发布模块 ==========

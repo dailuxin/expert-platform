@@ -800,8 +800,6 @@ require('./p0_routes.js')(app, requireAuth, requireExpert, sanitizeObj);
 // P1+P2+P3 features
 const p1p2Routes = require('./p1_p2_routes.js');
 app.use('/api', p1p2Routes);
-const registerTaskRoutes = require('./register_task_routes.js');
-app.use('/api', registerTaskRoutes);
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

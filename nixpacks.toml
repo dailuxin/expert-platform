@@ -1,0 +1,9 @@
+# 强制使用 Node.js 环境
+[phases.setup]
+nixPkgs = ["nodejs_22", "python3"]
+
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
+
+[start]
+cmd = "node app.js"

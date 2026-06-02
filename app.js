@@ -6,7 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-const { initDB, query, get, run, sanitize, sanitizeObj } = require('./database.js');
+const dbModule = require('./database.js');
+const { initDB, query, get, run, sanitize, sanitizeObj } = dbModule;
 const emailService = require('./emailService');
 const pushService = require('./pushService');
 
@@ -861,6 +862,14 @@ initDB();
   cancelExpiredOrders();
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`专家平台已启�? http://localhost:${PORT} (WebSocket ON)`);
+    console.log(Server running: http://localhost:${PORT} (WebSocket ON));
   });
-// 数据库初始化失败会直接抛出异常退�?
+}
+
+// Async DB init then start server
+initDB().then(() => {
+  startServer();
+}).catch(err => {
+  console.error('Database init failed:', err);
+  process.exit(1);
+});

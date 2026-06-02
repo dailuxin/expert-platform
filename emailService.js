@@ -1,6 +1,6 @@
 // emailService.js — 邮件通知服务（含简单封装函数）
 const nodemailer = require('nodemailer');
-const db = require('./database.js');
+const { query, get, run } = require('./database.js');
 
 const SMTP_CONFIG = {
   host: 'smtp.qq.com',
@@ -91,7 +91,7 @@ function renderWithdrawSuccess(expertName, amount) {
 
 async function notifyBookingUpdate(bookingId, status) {
   try {
-    var r = db.get('SELECT b.*, e.title AS expert_name, u.email FROM bookings b JOIN experts e ON b.expert_id = e.id JOIN users u ON b.user_id = u.id WHERE b.id = ?', [bookingId]);
+    var r = get('SELECT b.*, e.title AS expert_name, u.email FROM bookings b JOIN experts e ON b.expert_id = e.id JOIN users u ON b.user_id = u.id WHERE b.id = ?', [bookingId]);
     if (!r || !r.email) return;
     var html = renderBookingConfirm(r.expert_name || '', r.service_name || '', r.booking_time || '', r.amount || '0');
     await sendEmail(r.email, '预约状态更新 - 专家平台', html);
@@ -100,7 +100,7 @@ async function notifyBookingUpdate(bookingId, status) {
 
 async function notifyAuditResult(userId, auditStatus, rejectReason) {
   try {
-    var r = db.get('SELECT email, username FROM users WHERE id = ?', [userId]);
+    var r = get('SELECT email, username FROM users WHERE id = ?', [userId]);
     if (!r || !r.email) return;
     var html = renderAuditResult(r.username || '', auditStatus, rejectReason || '');
     await sendEmail(r.email, '专家资料审核结果 - 专家平台', html);
@@ -109,7 +109,7 @@ async function notifyAuditResult(userId, auditStatus, rejectReason) {
 
 async function notifyRefund(refundId) {
   try {
-    var r = db.get('SELECT r.*, u.email FROM refunds r JOIN users u ON r.user_id = u.id WHERE r.id = ?', [refundId]);
+    var r = get('SELECT r.*, u.email FROM refunds r JOIN users u ON r.user_id = u.id WHERE r.id = ?', [refundId]);
     if (!r || !r.email) return;
     var html = renderRefundNotice(r.amount || '0', r.reason || '');
     await sendEmail(r.email, '退款通知 - 专家平台', html);
@@ -118,7 +118,7 @@ async function notifyRefund(refundId) {
 
 async function notifyWithdrawal(withdrawalId) {
   try {
-    var r = db.get('SELECT w.*, u.email, u.username FROM withdrawals w JOIN experts e ON w.expert_id = e.id JOIN users u ON e.user_id = u.id WHERE w.id = ?', [withdrawalId]);
+    var r = get('SELECT w.*, u.email, u.username FROM withdrawals w JOIN experts e ON w.expert_id = e.id JOIN users u ON e.user_id = u.id WHERE w.id = ?', [withdrawalId]);
     if (!r || !r.email) return;
     var html = renderWithdrawSuccess(r.username || '', r.amount || '0');
     await sendEmail(r.email, '提现处理通知 - 专家平台', html);

@@ -1,6 +1,6 @@
 // pushService.js — Web Push 通知服务
 const webpush = require('web-push');
-const db = require('./database.js');
+const { query, get, run } = require('./database.js');
 
 // VAPID 密钥（生产环境请存到环境变量）
 const VAPID_KEYS = {
@@ -26,12 +26,12 @@ function saveSubscription(userId, subscription) {
     const { endpoint, keys } = subscription;
     const { p256dh, auth } = keys;
     // 先删除旧的同一 endpoint 订阅，再插入
-    db.run('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, endpoint]);
-    db.run(
+    run('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, endpoint]);
+    run(
       'INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)',
       [userId, endpoint, p256dh, auth]
     );
-    db.autoSave();
+
     return true;
   } catch (e) {
     console.error('保存推送订阅失败:', e.message);
@@ -42,8 +42,8 @@ function saveSubscription(userId, subscription) {
 // 删除用户的推送订阅
 function removeSubscription(userId, endpoint) {
   try {
-    db.run('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, endpoint]);
-    db.autoSave();
+    run('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, endpoint]);
+
     return true;
   } catch (e) {
     console.error('删除推送订阅失败:', e.message);
@@ -54,7 +54,7 @@ function removeSubscription(userId, endpoint) {
 // 获取用户的所有推送订阅
 function getSubscriptions(userId) {
   try {
-    return db.query('SELECT * FROM push_subscriptions WHERE user_id = ?', [userId]);
+    return query('SELECT * FROM push_subscriptions WHERE user_id = ?', [userId]);
   } catch (e) {
     console.error('获取推送订阅失败:', e.message);
     return [];

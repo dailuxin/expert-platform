@@ -1,4 +1,4 @@
-const initSqlJs = require('sql.js');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -12,16 +12,15 @@ if (!fs.existsSync(DATA_DIR)) {
 const DB_PATH = path.join(DATA_DIR, 'expert_platform.db');
 let db = null;
 
-async function initDB() {
-  const SQL = await initSqlJs();
-  if (fs.existsSync(DB_PATH)) {
-    db = new SQL.Database(fs.readFileSync(DB_PATH));
-  } else {
-    db = new SQL.Database();
-  }
+function initDB() {
+  db = new Database(DB_PATH);
+
+  // Enable WAL mode for better concurrent read performance
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
 
   // Users table
-  db.run(`CREATE TABLE IF NOT EXISTS users (
+  db.exec(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
@@ -41,7 +40,7 @@ async function initDB() {
   )`);
 
   // Experts table
-  db.run(`CREATE TABLE IF NOT EXISTS experts (
+  db.exec(`CREATE TABLE IF NOT EXISTS experts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER UNIQUE NOT NULL,
     industry TEXT NOT NULL,
@@ -65,7 +64,7 @@ async function initDB() {
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS expert_photos (
+  db.exec(`CREATE TABLE IF NOT EXISTS expert_photos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     photo_path TEXT NOT NULL,
@@ -73,7 +72,7 @@ async function initDB() {
   )`);
 
   // Companies table
-  db.run(`CREATE TABLE IF NOT EXISTS companies (
+  db.exec(`CREATE TABLE IF NOT EXISTS companies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER UNIQUE NOT NULL,
     company_name TEXT NOT NULL,
@@ -90,7 +89,7 @@ async function initDB() {
   )`);
 
   // Tasks (任务发布) table
-  db.run(`CREATE TABLE IF NOT EXISTS tasks (
+  db.exec(`CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     publisher_id INTEGER NOT NULL,
     title TEXT NOT NULL,
@@ -113,7 +112,7 @@ async function initDB() {
   )`);
 
   // Task applicants
-  db.run(`CREATE TABLE IF NOT EXISTS task_applicants (
+  db.exec(`CREATE TABLE IF NOT EXISTS task_applicants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id INTEGER NOT NULL,
     applicant_id INTEGER NOT NULL,
@@ -125,7 +124,7 @@ async function initDB() {
     FOREIGN KEY (applicant_id) REFERENCES users(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS login_logs (
+  db.exec(`CREATE TABLE IF NOT EXISTS login_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
     ip TEXT,
@@ -133,7 +132,7 @@ async function initDB() {
     created_at TEXT DEFAULT (datetime('now'))
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+  db.exec(`CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     action TEXT NOT NULL,
@@ -144,7 +143,7 @@ async function initDB() {
     FOREIGN KEY (operator_id) REFERENCES users(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS reviews (
+  db.exec(`CREATE TABLE IF NOT EXISTS reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -158,7 +157,7 @@ async function initDB() {
     UNIQUE(expert_id, user_id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS favorites (
+  db.exec(`CREATE TABLE IF NOT EXISTS favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     expert_id INTEGER NOT NULL,
@@ -169,7 +168,7 @@ async function initDB() {
   )`);
 
   // Bookings table - expanded with payment fields
-  db.run(`CREATE TABLE IF NOT EXISTS bookings (
+  db.exec(`CREATE TABLE IF NOT EXISTS bookings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -186,13 +185,15 @@ async function initDB() {
     paid_at TEXT,
     refunded_at TEXT,
     refund_reason TEXT DEFAULT '',
+    expires_at TEXT,
+    booking_id INTEGER,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (expert_id) REFERENCES experts(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS payments (
+  db.exec(`CREATE TABLE IF NOT EXISTS payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     booking_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -206,7 +207,7 @@ async function initDB() {
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS refunds (
+  db.exec(`CREATE TABLE IF NOT EXISTS refunds (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     booking_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -219,7 +220,7 @@ async function initDB() {
     FOREIGN KEY (user_id) REFERENCES users(id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS messages (
+  db.exec(`CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     from_user INTEGER NOT NULL,
     to_user INTEGER NOT NULL,
@@ -230,7 +231,7 @@ async function initDB() {
     FOREIGN KEY (to_user) REFERENCES users(id) ON DELETE CASCADE
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS notifications (
+  db.exec(`CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     type TEXT NOT NULL,
@@ -242,7 +243,7 @@ async function initDB() {
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS verifications (
+  db.exec(`CREATE TABLE IF NOT EXISTS verifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     real_name TEXT NOT NULL,
@@ -258,7 +259,7 @@ async function initDB() {
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS articles (
+  db.exec(`CREATE TABLE IF NOT EXISTS articles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     title TEXT NOT NULL,
@@ -271,7 +272,7 @@ async function initDB() {
   )`);
 
   // Expert wallet table
-  db.run(`CREATE TABLE IF NOT EXISTS expert_wallet (
+  db.exec(`CREATE TABLE IF NOT EXISTS expert_wallet (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER UNIQUE NOT NULL,
     balance INTEGER DEFAULT 0,
@@ -283,7 +284,7 @@ async function initDB() {
   )`);
 
   // Withdrawal requests table
-  db.run(`CREATE TABLE IF NOT EXISTS withdrawals (
+  db.exec(`CREATE TABLE IF NOT EXISTS withdrawals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     amount INTEGER NOT NULL,
@@ -298,7 +299,7 @@ async function initDB() {
   )`);
 
   // Platform config table (commission rate etc.)
-  db.run(`CREATE TABLE IF NOT EXISTS platform_config (
+  db.exec(`CREATE TABLE IF NOT EXISTS platform_config (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
@@ -308,7 +309,7 @@ async function initDB() {
 
 
   // Service packages table
-  db.run(`CREATE TABLE IF NOT EXISTS service_packages (
+  db.exec(`CREATE TABLE IF NOT EXISTS service_packages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     name TEXT NOT NULL,
@@ -322,7 +323,7 @@ async function initDB() {
   )`);
 
   // Push subscriptions table (for Web Push notifications)
-  db.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+  db.exec(`CREATE TABLE IF NOT EXISTS push_subscriptions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     endpoint TEXT NOT NULL,
@@ -334,7 +335,7 @@ async function initDB() {
   )`);
 
   // Expert weekly schedule table (recurring availability)
-  db.run(`CREATE TABLE IF NOT EXISTS expert_schedule (
+  db.exec(`CREATE TABLE IF NOT EXISTS expert_schedule (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     day_of_week INTEGER NOT NULL CHECK(day_of_week BETWEEN 0 AND 6),
@@ -347,7 +348,7 @@ async function initDB() {
   )`);
 
   // Expert time off / unavailable dates table
-  db.run(`CREATE TABLE IF NOT EXISTS expert_time_off (
+  db.exec(`CREATE TABLE IF NOT EXISTS expert_time_off (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     off_date TEXT NOT NULL,
@@ -358,8 +359,7 @@ async function initDB() {
   )`);
 
   // Booking slots cache (for quick availability lookup)
-  // Each slot = one bookable 30-min or 60-min slot
-  db.run(`CREATE TABLE IF NOT EXISTS expert_booked_slots (
+  db.exec(`CREATE TABLE IF NOT EXISTS expert_booked_slots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     expert_id INTEGER NOT NULL,
     booking_date TEXT NOT NULL,
@@ -371,7 +371,7 @@ async function initDB() {
     FOREIGN KEY (expert_id) REFERENCES experts(id) ON DELETE CASCADE,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
   )`);
-run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, amount INTEGER DEFAULT 20, min_amount INTEGER DEFAULT 0, status TEXT DEFAULT \'active\', created_at TEXT DEFAULT (datetime(\'now\')), used_at TEXT)');
+  run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, amount INTEGER DEFAULT 20, min_amount INTEGER DEFAULT 0, status TEXT DEFAULT \'active\', created_at TEXT DEFAULT (datetime(\'now\')), used_at TEXT)');
 
   // P2: 公告表
   run('CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT DEFAULT (datetime(\'now\')))');
@@ -379,12 +379,6 @@ run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, u
   // P2: 操作日志表
   run('CREATE TABLE IF NOT EXISTS operation_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT, action TEXT, target_type TEXT, target_id INTEGER, detail TEXT, ip TEXT, created_at TEXT DEFAULT (datetime(\'now\')))');
 
-
-  // Add expires_at to bookings for auto-cancel (P0 #3)
-  try { db.run(`ALTER TABLE bookings ADD COLUMN expires_at TEXT`); } catch(e) {}
-
-  // Add booking_id to reviews for order-linked reviews (P0 #2)
-  try { db.run(`ALTER TABLE reviews ADD COLUMN booking_id INTEGER`); } catch(e) {}
 
   // Run migrations for existing databases
   const migrations = [
@@ -395,7 +389,7 @@ run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, u
     'ALTER TABLE experts ADD COLUMN available INTEGER DEFAULT 1',
   ];
   for (const sql of migrations) {
-    try { db.run(sql); } catch (e) {}
+    try { db.exec(sql); } catch (e) {}
   }
 
   // Bookings migration: add platform_fee / expert_income
@@ -404,7 +398,7 @@ run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, u
     'ALTER TABLE bookings ADD COLUMN expert_income INTEGER DEFAULT 0',
   ];
   for (const sql of bookingMigrations) {
-    try { db.run(sql); } catch (e) {}
+    try { db.exec(sql); } catch (e) {}
   }
 
   // Add new columns to bookings if they don't exist
@@ -414,10 +408,17 @@ run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, u
     "ALTER TABLE bookings ADD COLUMN paid_at TEXT",
     "ALTER TABLE bookings ADD COLUMN refunded_at TEXT",
     "ALTER TABLE bookings ADD COLUMN refund_reason TEXT",
+    "ALTER TABLE bookings ADD COLUMN expires_at TEXT",
+    "ALTER TABLE bookings ADD COLUMN booking_id INTEGER",
   ];
   for (const sql of bookingCols) {
-    try { db.run(sql); } catch (e) {}
+    try { db.exec(sql); } catch (e) {}
   }
+
+  // Add email column if not exists (for existing databases)
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN email TEXT DEFAULT ''`);
+  } catch (e) {}
 
   // Create admin if not exists
   const admin = get('SELECT id FROM users WHERE role = ?', ['admin']);
@@ -427,63 +428,41 @@ run('CREATE TABLE IF NOT EXISTS coupons (id INTEGER PRIMARY KEY AUTOINCREMENT, u
       ['admin', hash, 'System Admin', 'admin']);
   }
 
-  // Add email column if not exists (for existing databases)
-  try {
-    db.run(`ALTER TABLE users ADD COLUMN email TEXT DEFAULT ''`);
-  } catch (e) {
-    // ignore if column already exists
-  }
-
-  save();
+  console.log('[Database initialized:', DB_PATH, ']');
   return db;
 }
 
-function save() {
-  if (!db) return;
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
-}
-
-// Auto-save: call after every write
-function autoSave() {
-  save();
-}
-
-// Graceful shutdown
+// Graceful shutdown - better-sqlite3 auto-saves, just close
 function shutdown() {
-  console.log('\n[Saving database before exit...]');
-  save();
-  console.log('[Database saved. Bye!]');
+  console.log('\n[Closing database before exit...]');
+  if (db) {
+    db.close();
+    console.log('[Database closed. Bye!]');
+  }
   process.exit(0);
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception:', err);
-  save();
+  if (db) db.close();
   process.exit(1);
 });
 
 function query(sql, params = []) {
   const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) rows.push(stmt.getAsObject());
-  stmt.free();
-  return rows;
+  return stmt.all(...params);
 }
 
 function get(sql, params = []) {
-  const rows = query(sql, params);
-  return rows.length ? rows[0] : undefined;
+  const stmt = db.prepare(sql);
+  return stmt.get(...params);
 }
 
 function run(sql, params = []) {
-  db.run(sql, params);
-  const r = get('SELECT last_insert_rowid() as id');
-  autoSave();
-  return { lastInsertRowId: r ? r.id : 0 };
+  const stmt = db.prepare(sql);
+  const result = stmt.run(...params);
+  return { lastInsertRowid: result.lastInsertRowid };
 }
 
 function sanitize(s) {
@@ -501,4 +480,4 @@ function sanitizeObj(o) {
   return r;
 }
 
-module.exports = { initDB, query, get, run, save, sanitize, sanitizeObj };
+module.exports = { initDB, query, get, run, sanitize, sanitizeObj };

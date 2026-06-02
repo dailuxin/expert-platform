@@ -3,7 +3,7 @@
 // 自动取消逻辑已移至 app.js（避免 db 未初始化时报错）
 
 module.exports = function(app, requireAuth, requireExpert, sanitizeObj) {
-  const { query, get, run, save } = require('./database.js');
+  const { query, get, run } = require('./database.js');
   const pushService = require('./pushService');
 
   // ===== Expert Schedule Management (P0 #1) =====
@@ -26,7 +26,7 @@ module.exports = function(app, requireAuth, requireExpert, sanitizeObj) {
           [req.expertId, s.day_of_week, s.start_time, s.end_time, s.is_available !== false ? 1 : 0]);
       }
     }
-    save();
+    
     res.json({ success: true });
   });
 
@@ -35,14 +35,14 @@ module.exports = function(app, requireAuth, requireExpert, sanitizeObj) {
     const { off_date, reason } = sanitizeObj(req.body);
     if (!off_date) return res.status(400).json({ error: '日期必填' });
     run('INSERT OR REPLACE INTO expert_time_off (expert_id, off_date, reason) VALUES (?, ?, ?)', [req.expertId, off_date, reason || '']);
-    save();
+    
     res.json({ success: true });
   });
 
   // 删除请假日期
   app.delete('/api/expert/time-off/:date', requireAuth, requireExpert, (req, res) => {
     run('DELETE FROM expert_time_off WHERE expert_id = ? AND off_date = ?', [req.expertId, req.params.date]);
-    save();
+    
     res.json({ success: true });
   });
 
@@ -110,7 +110,7 @@ module.exports = function(app, requireAuth, requireExpert, sanitizeObj) {
     // 更新专家平均分
     const stats = get('SELECT AVG(rating) as avg, COUNT(*) as cnt FROM reviews WHERE expert_id = ?', [expertId]);
     run('UPDATE experts SET avg_rating = ?, review_count = ? WHERE id = ?', [stats.avg || 0, stats.cnt || 0, expertId]);
-    save();
+    
     res.json({ success: true });
   });
 

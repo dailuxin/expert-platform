@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-const { initDB, query, get, run, save, sanitize, sanitizeObj } = require('./database.js');
+const { initDB, query, get, run, sanitize, sanitizeObj } = require('./database.js');
 const emailService = require('./emailService');
 const pushService = require('./pushService');
 
@@ -61,8 +61,8 @@ app.post('/api/register', (req, res) => {
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   const user = get('SELECT * FROM users WHERE username = ?', [username]);
-  if (!user) { run('INSERT INTO login_logs (username, ip, success) VALUES (?, ?, 0)', [username, req.ip]); return res.status(400).json({ error: '用户不存在' }); }
-  if (user.locked_until && Date.now() < user.locked_until) return res.status(403).json({ error: '账户已锁定，请稍后再试' });
+  if (!user) { run('INSERT INTO login_logs (username, ip, success) VALUES (?, ?, 0)', [username, req.ip]); return res.status(400).json({ error: '用户不存�? }); }
+  if (user.locked_until && Date.now() < user.locked_until) return res.status(403).json({ error: '账户已锁定，请稍后再�? });
   if (!bcrypt.compareSync(password, user.password)) {
     const attempts = (user.login_attempts || 0) + 1;
     const locked = attempts >= 5 ? Date.now() + 30 * 60 * 1000 : 0;
@@ -79,7 +79,7 @@ app.post('/api/login', (req, res) => {
 app.post('/api/logout', (req, res) => { req.session.destroy(() => res.json({ success: true })); });
 
 app.get('/api/me', (req, res) => {
-  if (!req.session.userId) return res.status(401).json({ error: '未登录' });
+  if (!req.session.userId) return res.status(401).json({ error: '未登�? });
   const user = get('SELECT id, username, real_name, phone, role FROM users WHERE id = ?', [req.session.userId]);
   const expert = get('SELECT id, audit_status, verified, avg_rating, review_count FROM experts WHERE user_id = ?', [req.session.userId]);
   res.json({ user, expert });
@@ -88,7 +88,7 @@ app.get('/api/me', (req, res) => {
 app.put('/api/change-password', requireAuth, (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const user = get('SELECT * FROM users WHERE id = ?', [req.session.userId]);
-  if (!bcrypt.compareSync(oldPassword, user.password)) return res.status(400).json({ error: '原密码错误' });
+  if (!bcrypt.compareSync(oldPassword, user.password)) return res.status(400).json({ error: '原密码错�? });
   const hash = bcrypt.hashSync(newPassword, 12);
   run('UPDATE users SET password = ? WHERE id = ?', [hash, req.session.userId]);
   res.json({ success: true });
@@ -97,7 +97,7 @@ app.put('/api/change-password', requireAuth, (req, res) => {
 // ===== Push Notifications =====
 app.post('/api/push/subscribe', requireAuth, (req, res) => {
   const { subscription } = req.body;
-  if (!subscription || !subscription.endpoint) return res.status(400).json({ error: '无效的订阅对象' });
+  if (!subscription || !subscription.endpoint) return res.status(400).json({ error: '无效的订阅对�? });
   pushService.saveSubscription(req.session.userId, subscription);
   res.json({ success: true });
 });
@@ -131,7 +131,7 @@ app.get('/api/experts', (req, res) => {
 
 app.get('/api/experts/:id', (req, res) => {
   const expert = get(`SELECT e.*, u.real_name, u.phone FROM experts e JOIN users u ON e.user_id = u.id WHERE e.id = ?`, [req.params.id]);
-  if (!expert) return res.status(404).json({ error: '专家不存在' });
+  if (!expert) return res.status(404).json({ error: '专家不存�? });
   if (req.session.userId !== expert.user_id) {
     run('UPDATE experts SET views = views + 1 WHERE id = ?', [req.params.id]);
   }
@@ -162,7 +162,7 @@ app.post('/api/expert/profile', requireAuth, (req, res) => {
 });
 
 app.post('/api/expert/photo', requireAuth, upload.single('photo'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: '未上传文件' });
+  if (!req.file) return res.status(400).json({ error: '未上传文�? });
   const expert = get('SELECT id FROM experts WHERE user_id = ?', [req.session.userId]);
   if (!expert) return res.status(400).json({ error: '请先提交专家资料' });
   const relPath = '/uploads/' + req.file.filename;
@@ -175,7 +175,7 @@ app.post('/api/expert/photo', requireAuth, upload.single('photo'), (req, res) =>
 
 app.delete('/api/expert/photo/:filename', requireAuth, (req, res) => {
   const expert = get('SELECT id FROM experts WHERE user_id = ?', [req.session.userId]);
-  if (!expert) return res.status(400).json({ error: '专家不存在' });
+  if (!expert) return res.status(400).json({ error: '专家不存�? });
   const filename = req.params.filename;
   const relPath = '/uploads/' + filename;
   run('DELETE FROM expert_photos WHERE expert_id = ? AND photo_path = ?', [expert.id, relPath]);
@@ -207,7 +207,7 @@ app.post('/api/experts/:id/review', requireAuth, (req, res) => {
     if (stats) run('UPDATE experts SET avg_rating = ?, review_count = ? WHERE id = ?', [stats.avg || 0, stats.cnt || 0, expertId]);
     res.json({ success: true });
   } catch (e) {
-    res.status(400).json({ error: '您已经评价过该专家' });
+    res.status(400).json({ error: '您已经评价过该专�? });
   }
 });
 
@@ -228,7 +228,7 @@ app.post('/api/favorites/:expertId', requireAuth, (req, res) => {
   try {
     run('INSERT INTO favorites (user_id, expert_id) VALUES (?, ?)', [req.session.userId, req.params.expertId]);
     res.json({ success: true });
-  } catch (e) { res.status(400).json({ error: '已收藏' }); }
+  } catch (e) { res.status(400).json({ error: '已收�? }); }
 });
 
 app.delete('/api/favorites/:expertId', requireAuth, (req, res) => {
@@ -260,8 +260,7 @@ app.post('/api/bookings', requireAuth, (req, res) => {
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   const bookingId = run(`INSERT INTO bookings (expert_id, user_id, booking_date, booking_time, duration, topic, status, amount, expires_at) VALUES (?, ?, ?, ?, ?, ?, 'pending_payment', ?, ?)`,
     [expert_id, req.session.userId, booking_date, booking_time, parseInt(duration)||60, topic||'', amount, expiresAt]).lastInsertRowId;
-  // 记录已被占用的时段（防止重复预约）
-  run('INSERT OR IGNORE INTO expert_booked_slots (expert_id, booking_date, start_time, end_time, booking_id) VALUES (?, ?, ?, ?, ?)',
+  // 记录已被占用的时段（防止重复预约�?  run('INSERT OR IGNORE INTO expert_booked_slots (expert_id, booking_date, start_time, end_time, booking_id) VALUES (?, ?, ?, ?, ?)',
     [expert_id, booking_date, booking_time, booking_time, bookingId]);
   res.json({ success: true, booking_id: bookingId, amount: amount, status: 'pending_payment', expires_at: expiresAt });
 });
@@ -269,7 +268,7 @@ app.post('/api/bookings', requireAuth, (req, res) => {
 // Initiate payment (mock)
 app.post('/api/bookings/:id/pay', requireAuth, (req, res) => {
   const booking = get('SELECT * FROM bookings WHERE id = ? AND user_id = ?', [req.params.id, req.session.userId]);
-  if (!booking) return res.status(404).json({ error: '订单不存在' });
+  if (!booking) return res.status(404).json({ error: '订单不存�? });
   if (booking.status !== 'pending_payment') return res.status(400).json({ error: '订单状态不正确' });
   // Calculate platform fee (default 15%)
   const commissionRate = parseFloat(get('SELECT value FROM platform_config WHERE key = ?', ['commission_rate'])?.value || '0.15');
@@ -291,12 +290,12 @@ app.post('/api/bookings/:id/pay', requireAuth, (req, res) => {
     run('UPDATE expert_wallet SET balance = balance + ?, total_income = total_income + ?, updated_at = datetime("now") WHERE expert_id = ?', [expertIncome, expertIncome, expert.id]);
     // Notify expert
     run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
-      [expert.user_id, 'booking', '新预约待确认', `有用户支付了咨询费用 ¥${amount}，您的收入 ¥${expertIncome}`, booking.id]);
+      [expert.user_id, 'booking', '新预约待确认', `有用户支付了咨询费用 ¥${amount}，您的收�?¥${expertIncome}`, booking.id]);
   }
   // Notify user
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
     [req.session.userId, 'booking_update', '支付成功', `您已支付 ¥${amount}，平台手续费 ¥${platformFee}`, booking.id]);
-  save();
+
   res.json({ success: true, status: 'paid', platform_fee: platformFee, expert_income: expertIncome });
 });
 
@@ -304,7 +303,7 @@ app.post('/api/bookings/:id/pay', requireAuth, (req, res) => {
 app.put('/api/bookings/:id', requireAuth, (req, res) => {
   const { status, reject_reason } = req.body;
   const booking = get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
-  if (!booking) return res.status(404).json({ error: '预约不存在' });
+  if (!booking) return res.status(404).json({ error: '预约不存�? });
   const expert = get('SELECT id FROM experts WHERE user_id = ?', [req.session.userId]);
   if (!expert || expert.id != booking.expert_id) {
     if (req.session.role !== 'admin') return res.status(403).json({ error: '无权操作' });
@@ -312,29 +311,27 @@ app.put('/api/bookings/:id', requireAuth, (req, res) => {
   if (status === 'confirmed' && booking.status !== 'paid') return res.status(400).json({ error: '请先完成支付' });
   run('UPDATE bookings SET status = ?, reject_reason = ?, updated_at = datetime("now") WHERE id = ?', [status, reject_reason || '', req.params.id]);
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
-    [booking.user_id, 'booking_update', '预约状态更新', `您的预约已${status === 'confirmed' ? '确认' : status === 'rejected' ? '被拒绝' : status}`, booking.id]);
-  // 邮件通知（非阻塞）
-  emailService.notifyBookingUpdate(booking.id, status).catch(e => console.error('邮件发送失败:', e.message));
-  // 推送通知（非阻塞）
-  pushService.sendPushNotification(booking.user_id, {
-    title: '预约状态更新',
-    body: `您的预约已${status === 'confirmed' ? '确认' : '被拒绝'}`,
+    [booking.user_id, 'booking_update', '预约状态更�?, `您的预约�?{status === 'confirmed' ? '确认' : status === 'rejected' ? '被拒�? : status}`, booking.id]);
+  // 邮件通知（非阻塞�?  emailService.notifyBookingUpdate(booking.id, status).catch(e => console.error('邮件发送失�?', e.message));
+  // 推送通知（非阻塞�?  pushService.sendPushNotification(booking.user_id, {
+    title: '预约状态更�?,
+    body: `您的预约�?{status === 'confirmed' ? '确认' : '被拒�?}`,
     url: '/',
     tag: 'booking-' + booking.id
-  }).catch(e => console.error('推送失败:', e.message));
+  }).catch(e => console.error('推送失�?', e.message));
   res.json({ success: true });
 });
 
 // Mark booking as completed (after consultation)
 app.post('/api/bookings/:id/complete', requireAuth, (req, res) => {
   const booking = get('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
-  if (!booking) return res.status(404).json({ error: '订单不存在' });
+  if (!booking) return res.status(404).json({ error: '订单不存�? });
   // Only expert or admin can mark as completed
   const expert = get('SELECT id FROM experts WHERE user_id = ?', [req.session.userId]);
   if (!expert || expert.id != booking.expert_id) {
     if (req.session.role !== 'admin') return res.status(403).json({ error: '无权操作' });
   }
-  if (booking.status !== 'confirmed') return res.status(400).json({ error: '只有已确认的预约才能标记为完成' });
+  if (booking.status !== 'confirmed') return res.status(400).json({ error: '只有已确认的预约才能标记为完�? });
   run('UPDATE bookings SET status = ? WHERE id = ?', ['completed', req.params.id]);
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
     [booking.user_id, 'booking_complete', '咨询完成', '您的咨询已完成，欢迎评价', booking.id]);
@@ -345,8 +342,8 @@ app.post('/api/bookings/:id/complete', requireAuth, (req, res) => {
 app.post('/api/bookings/:id/refund', requireAuth, (req, res) => {
   const { reason } = sanitizeObj(req.body);
   const booking = get('SELECT * FROM bookings WHERE id = ? AND user_id = ?', [req.params.id, req.session.userId]);
-  if (!booking) return res.status(404).json({ error: '订单不存在' });
-  if (booking.status !== 'paid' && booking.status !== 'confirmed') return res.status(400).json({ error: '当前状态不可退款' });
+  if (!booking) return res.status(404).json({ error: '订单不存�? });
+  if (booking.status !== 'paid' && booking.status !== 'confirmed') return res.status(400).json({ error: '当前状态不可退�? });
   run('UPDATE bookings SET status = ? WHERE id = ?', ['refunding', req.params.id]);
   run(`INSERT INTO refunds (booking_id, user_id, amount, reason, status) VALUES (?, ?, ?, ?, 'pending')`,
     [booking.id, req.session.userId, booking.amount || 0, reason || '']);
@@ -354,7 +351,7 @@ app.post('/api/bookings/:id/refund', requireAuth, (req, res) => {
   const admin = get('SELECT id FROM users WHERE role = ?', ['admin']);
   if (admin) {
     run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
-      [admin.id, 'refund', '退款申请', `用户申请退款，订单ID：${booking.id}，原因：${reason || '未填写'}`, booking.id]);
+      [admin.id, 'refund', '退款申�?, `用户申请退款，订单ID�?{booking.id}，原因：${reason || '未填�?}`, booking.id]);
   }
   res.json({ success: true, status: 'refunding' });
 });
@@ -377,20 +374,18 @@ app.get('/api/admin/refunds', requireAdmin, (req, res) => {
 app.post('/api/admin/refunds/:id/approve', requireAdmin, (req, res) => {
   const refund = get('SELECT * FROM refunds WHERE id = ?', [req.params.id]);
   if (!refund) return res.status(404).json({ error: '退款申请不存在' });
-  if (refund.status !== 'pending') return res.status(400).json({ error: '已处理' });
+  if (refund.status !== 'pending') return res.status(400).json({ error: '已处�? });
   run('UPDATE refunds SET status = ?, processed_at = datetime("now") WHERE id = ?', ['approved', req.params.id]);
   run('UPDATE bookings SET status = ?, refunded_at = datetime("now") WHERE id = ?', ['refunded', refund.booking_id]);
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
     [refund.user_id, 'refund', '退款通过', `您的退款申请已通过，金额：¥${refund.amount}`, refund.booking_id]);
-  // 邮件通知（非阻塞）
-  emailService.notifyRefund(refund.id).catch(e => console.error('邮件发送失败:', e.message));
-  // 推送通知（非阻塞）
-  pushService.sendPushNotification(refund.user_id, {
+  // 邮件通知（非阻塞�?  emailService.notifyRefund(refund.id).catch(e => console.error('邮件发送失�?', e.message));
+  // 推送通知（非阻塞�?  pushService.sendPushNotification(refund.user_id, {
     title: '退款通知',
     body: `您的退款申请已通过，金额：¥${refund.amount}`,
     url: '/',
     tag: 'refund-' + refund.id
-  }).catch(e => console.error('推送失败:', e.message));
+  }).catch(e => console.error('推送失�?', e.message));
   res.json({ success: true });
 });
 
@@ -398,11 +393,11 @@ app.post('/api/admin/refunds/:id/reject', requireAdmin, (req, res) => {
   const { reason } = req.body;
   const refund = get('SELECT * FROM refunds WHERE id = ?', [req.params.id]);
   if (!refund) return res.status(404).json({ error: '退款申请不存在' });
-  if (refund.status !== 'pending') return res.status(400).json({ error: '已处理' });
+  if (refund.status !== 'pending') return res.status(400).json({ error: '已处�? });
   run('UPDATE refunds SET status = ?, processed_at = datetime("now") WHERE id = ?', ['rejected', req.params.id]);
   run('UPDATE bookings SET status = ? WHERE id = ?', ['paid', refund.booking_id]);
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
-    [refund.user_id, 'refund', '退款被驳回', `您的退款申请被驳回，原因：${reason || '未说明'}`, refund.booking_id]);
+    [refund.user_id, 'refund', '退款被驳回', `您的退款申请被驳回，原因：${reason || '未说�?}`, refund.booking_id]);
   res.json({ success: true });
 });
 
@@ -422,7 +417,7 @@ app.post('/api/messages', requireAuth, (req, res) => {
   if (!to_user || !content) return res.status(400).json({ error: '收件人和内容必填' });
   run('INSERT INTO messages (from_user, to_user, content) VALUES (?, ?, ?)', [req.session.userId, to_user, content]);
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
-    [to_user, 'message', '新消息', '您收到一条新消息', req.session.userId]);
+    [to_user, 'message', '新消�?, '您收到一条新消息', req.session.userId]);
   res.json({ success: true });
 });
 
@@ -461,7 +456,7 @@ app.get('/api/verification', requireAuth, (req, res) => {
 
 app.post('/api/verification', requireAuth, (req, res) => {
   const { real_name, id_number } = sanitizeObj(req.body);
-  if (!real_name || !id_number) return res.status(400).json({ error: '姓名和身份证号必填' });
+  if (!real_name || !id_number) return res.status(400).json({ error: '姓名和身份证号必�? });
   const existing = get('SELECT id FROM verifications WHERE user_id = ? AND status = "pending"', [req.session.userId]);
   if (existing) return res.status(400).json({ error: '已有待审核的认证申请' });
   run('INSERT INTO verifications (user_id, real_name, id_number) VALUES (?, ?, ?)', [req.session.userId, real_name, id_number]);
@@ -482,7 +477,7 @@ app.post('/api/verification/:id/reject', requireAdmin, (req, res) => {
   const { remark } = req.body;
   run('UPDATE verifications SET status = "rejected", remark = ?, reviewed_at = datetime("now"), reviewer_id = ? WHERE id = ?', [remark || '', req.session.userId, req.params.id]);
   const v = get('SELECT user_id FROM verifications WHERE id = ?', [req.params.id]);
-  if (v) run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)', [v.user_id, 'verification', '认证未通过', remark || '请重新提交认证信息']);
+  if (v) run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)', [v.user_id, 'verification', '认证未通过', remark || '请重新提交认证信�?]);
   res.json({ success: true });
 });
 
@@ -500,7 +495,7 @@ app.get('/api/articles/:id', (req, res) => {
 
 app.post('/api/articles', requireExpert, (req, res) => {
   const { title, content, status } = sanitizeObj(req.body);
-  if (!title || !content) return res.status(400).json({ error: '标题和内容必填' });
+  if (!title || !content) return res.status(400).json({ error: '标题和内容必�? });
   const expert = get('SELECT id FROM experts WHERE user_id = ?', [req.session.userId]);
   run('INSERT INTO articles (expert_id, title, content, status) VALUES (?, ?, ?, ?)', [expert.id, title, content, status || 'published']);
   res.json({ success: true });
@@ -546,18 +541,16 @@ app.post('/api/admin/experts/:id/audit', requireAdmin, (req, res) => {
   run('INSERT INTO audit_logs (expert_id, action, remark, operator_id) VALUES (?, ?, ?, ?)', [expertId, action, remark || '', req.session.userId]);
   const expert = get('SELECT user_id FROM experts WHERE id = ?', [expertId]);
   if (expert) {
-    const msgs = { approve: '审核通过，您的专家资料已公开展示', reject: '审核未通过：' + (remark || ''), resubmit: '请补充修改资料：' + (remark || '') };
+    const msgs = { approve: '审核通过，您的专家资料已公开展示', reject: '审核未通过�? + (remark || ''), resubmit: '请补充修改资料：' + (remark || '') };
     run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)', [expert.user_id, 'audit', '审核结果', msgs[action] || '']);
-    // 邮件通知（非阻塞）
-    emailService.notifyAuditResult(expert.user_id, newStatus, remark).catch(e => console.error('邮件发送失败:', e.message));
-    // 推送通知（非阻塞）
-    const auditMsgs = { approve: '审核通过，您的专家资料已公开展示', reject: '审核未通过：' + (remark || ''), resubmit: '请补充修改资料：' + (remark || '') };
+    // 邮件通知（非阻塞�?    emailService.notifyAuditResult(expert.user_id, newStatus, remark).catch(e => console.error('邮件发送失�?', e.message));
+    // 推送通知（非阻塞�?    const auditMsgs = { approve: '审核通过，您的专家资料已公开展示', reject: '审核未通过�? + (remark || ''), resubmit: '请补充修改资料：' + (remark || '') };
     pushService.sendPushNotification(expert.user_id, {
       title: '审核结果',
-      body: auditMsgs[action] || '审核结果已更新',
+      body: auditMsgs[action] || '审核结果已更�?,
       url: '/',
       tag: 'audit-' + expertId
-    }).catch(e => console.error('推送失败:', e.message));
+    }).catch(e => console.error('推送失�?', e.message));
   }
   res.json({ success: true });
 });
@@ -609,7 +602,7 @@ app.get('/api/expert/wallet', requireExpert, (req, res) => {
 
 app.post('/api/expert/withdraw', requireExpert, (req, res) => {
   const { amount, account_name, account_number, bank_name } = sanitizeObj(req.body);
-  if (!amount || amount <= 0) return res.status(400).json({ error: '提现金额不正确' });
+  if (!amount || amount <= 0) return res.status(400).json({ error: '提现金额不正�? });
   const wallet = get('SELECT * FROM expert_wallet WHERE expert_id = ?', [req.expertId]);
   if (!wallet || wallet.balance < amount) return res.status(400).json({ error: '余额不足' });
   run('UPDATE expert_wallet SET balance = balance - ?, updated_at = datetime("now") WHERE expert_id = ?', [amount, req.expertId]);
@@ -620,7 +613,7 @@ app.post('/api/expert/withdraw', requireExpert, (req, res) => {
     run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)',
       [admin.id, 'withdrawal', '提现申请', `专家ID ${req.expertId} 申请提现 ¥${amount}`]);
   }
-  save();
+
   res.json({ success: true });
 });
 
@@ -640,41 +633,39 @@ app.get('/api/admin/withdrawals', requireAdmin, (req, res) => {
 
 app.post('/api/admin/withdrawals/:id/approve', requireAdmin, (req, res) => {
   const w = get('SELECT * FROM withdrawals WHERE id = ?', [req.params.id]);
-  if (!w) return res.status(404).json({ error: '提现申请不存在' });
-  if (w.status !== 'pending') return res.status(400).json({ error: '已处理' });
+  if (!w) return res.status(404).json({ error: '提现申请不存�? });
+  if (w.status !== 'pending') return res.status(400).json({ error: '已处�? });
   run('UPDATE withdrawals SET status = "approved", processed_at = datetime("now") WHERE id = ?', [req.params.id]);
   run('UPDATE expert_wallet SET total_withdrawn = total_withdrawn + ?, updated_at = datetime("now") WHERE expert_id = ?', [w.amount, w.expert_id]);
   const expert = get('SELECT user_id FROM experts WHERE id = ?', [w.expert_id]);
   if (expert) {
     run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)',
       [expert.user_id, 'withdrawal', '提现通过', `您的提现申请 ¥${w.amount} 已通过，请注意查收`]);
-    // 邮件通知（非阻塞）
-    emailService.notifyWithdrawal(w.id).catch(e => console.error('邮件发送失败:', e.message));
-    // 推送通知（非阻塞）
-    pushService.sendPushNotification(expert.user_id, {
+    // 邮件通知（非阻塞�?    emailService.notifyWithdrawal(w.id).catch(e => console.error('邮件发送失�?', e.message));
+    // 推送通知（非阻塞�?    pushService.sendPushNotification(expert.user_id, {
       title: '提现处理通知',
       body: `您的提现申请 ¥${w.amount} 已通过，请注意查收`,
       url: '/',
       tag: 'withdrawal-' + w.id
-    }).catch(e => console.error('推送失败:', e.message));
+    }).catch(e => console.error('推送失�?', e.message));
   }
-  save();
+
   res.json({ success: true });
 });
 
 app.post('/api/admin/withdrawals/:id/reject', requireAdmin, (req, res) => {
   const { remark } = req.body;
   const w = get('SELECT * FROM withdrawals WHERE id = ?', [req.params.id]);
-  if (!w) return res.status(404).json({ error: '提现申请不存在' });
-  if (w.status !== 'pending') return res.status(400).json({ error: '已处理' });
+  if (!w) return res.status(404).json({ error: '提现申请不存�? });
+  if (w.status !== 'pending') return res.status(400).json({ error: '已处�? });
   run('UPDATE withdrawals SET status = "rejected", remark = ?, processed_at = datetime("now") WHERE id = ?', [remark || '', req.params.id]);
   run('UPDATE expert_wallet SET balance = balance + ?, updated_at = datetime("now") WHERE expert_id = ?', [w.amount, w.expert_id]);
   const expert = get('SELECT user_id FROM experts WHERE id = ?', [w.expert_id]);
   if (expert) {
     run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)',
-      [expert.user_id, 'withdrawal', '提现被驳回', `您的提现申请被驳回：${remark || '未说明'}`]);
+      [expert.user_id, 'withdrawal', '提现被驳�?, `您的提现申请被驳回：${remark || '未说�?}`]);
   }
-  save();
+
   res.json({ success: true });
 });
 
@@ -693,7 +684,7 @@ app.put('/api/admin/config/:key', requireAdmin, (req, res) => {
   } else {
     run('INSERT INTO platform_config (key, value) VALUES (?, ?)', [req.params.key, String(value)]);
   }
-  save();
+
   res.json({ success: true });
 });
 
@@ -718,8 +709,7 @@ app.get('/api/admin/revenue', requireAdmin, (req, res) => {
 
 // ===== Service Packages API =====
 
-// 专家查看自己的服务套餐
-app.get('/api/expert/packages', requireAuth, requireExpert, (req, res) => {
+// 专家查看自己的服务套�?app.get('/api/expert/packages', requireAuth, requireExpert, (req, res) => {
   const list = db.query(
     'SELECT * FROM service_packages WHERE expert_id = ? AND is_active = 1',
     [req.expert.id]
@@ -730,7 +720,7 @@ app.get('/api/expert/packages', requireAuth, requireExpert, (req, res) => {
 // 专家创建服务套餐
 app.post('/api/expert/packages', requireAuth, requireExpert, (req, res) => {
   const { name, description, price, duration } = req.body;
-  if (!name || !price) return res.json({ success: false, message: '名称和价格为必填项' });
+  if (!name || !price) return res.json({ success: false, message: '名称和价格为必填�? });
   const r = db.run(
     'INSERT INTO service_packages (expert_id, name, description, price, duration) VALUES (?, ?, ?, ?, ?)',
     [req.expert.id, name, description || '', parseInt(price) || 0, parseInt(duration) || 60]
@@ -741,9 +731,8 @@ app.post('/api/expert/packages', requireAuth, requireExpert, (req, res) => {
 // 专家更新服务套餐
 app.put('/api/expert/packages/:id', requireAuth, requireExpert, (req, res) => {
   const { name, description, price, duration, is_active } = req.body;
-  // 验证套餐属于该专家
-  const pkg = db.get('SELECT * FROM service_packages WHERE id = ? AND expert_id = ?', [req.params.id, req.expert.id]);
-  if (!pkg) return res.json({ success: false, message: '套餐不存在或无权限' });
+  // 验证套餐属于该专�?  const pkg = db.get('SELECT * FROM service_packages WHERE id = ? AND expert_id = ?', [req.params.id, req.expert.id]);
+  if (!pkg) return res.json({ success: false, message: '套餐不存在或无权�? });
   const fields = [];
   const params = [];
   if (name !== undefined) { fields.push('name = ?'); params.push(name); }
@@ -760,13 +749,12 @@ app.put('/api/expert/packages/:id', requireAuth, requireExpert, (req, res) => {
 // 专家删除（停用）服务套餐
 app.delete('/api/expert/packages/:id', requireAuth, requireExpert, (req, res) => {
   const pkg = db.get('SELECT * FROM service_packages WHERE id = ? AND expert_id = ?', [req.params.id, req.expert.id]);
-  if (!pkg) return res.json({ success: false, message: '套餐不存在或无权限' });
+  if (!pkg) return res.json({ success: false, message: '套餐不存在或无权�? });
   db.run('UPDATE service_packages SET is_active = 0 WHERE id = ?', [req.params.id]);
   res.json({ success: true });
 });
 
-// 公开：查看某专家的服务套餐（预约时选择）
-app.get('/api/experts/:id/packages', (req, res) => {
+// 公开：查看某专家的服务套餐（预约时选择�?app.get('/api/experts/:id/packages', (req, res) => {
   const list = db.query(
     'SELECT id, name, description, price, duration FROM service_packages WHERE expert_id = ? AND is_active = 1',
     [req.params.id]
@@ -805,8 +793,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-initDB().then(() => {
-  // ===== WebSocket 实时通知服务器 (P1) =====
+// better-sqlite3: 同步初始化，无需 .then()
+initDB();
+
+// ===== WebSocket 实时通知服务�?(P1) =====
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server });
 
@@ -815,8 +805,7 @@ initDB().then(() => {
 
   wss.on('connection', (ws, req) => {
     let userId = null;
-    // 从 session 解析 userId（简易方案：前端连接时发送 userId）
-    ws.on('message', (msg) => {
+    // �?session 解析 userId（简易方案：前端连接时发�?userId�?    ws.on('message', (msg) => {
       try {
         const data = JSON.parse(msg);
         if (data.type === 'auth' && data.userId) {
@@ -835,8 +824,7 @@ initDB().then(() => {
     });
   });
 
-  // 实时推送通知的辅助函数（供各 API 调用）
-  function pushNotification(userId, notification) {
+  // 实时推送通知的辅助函数（供各 API 调用�?  function pushNotification(userId, notification) {
     const ws = onlineUsers.get(userId);
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: 'notification', data: notification }));
@@ -859,7 +847,7 @@ initDB().then(() => {
       run('UPDATE bookings SET status = ?, updated_at = datetime("now") WHERE id = ?', ['cancelled', b.id]);
       run(
         'INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
-        [b.user_id, 'booking_update', '预约已取消', '支付超时，预约已自动取消', b.id]
+        [b.user_id, 'booking_update', '预约已取�?, '支付超时，预约已自动取消', b.id]
       );
       const slots = query('SELECT * FROM expert_booked_slots WHERE booking_id = ?', [b.id]);
       for (const s of slots) {
@@ -867,15 +855,12 @@ initDB().then(() => {
       }
       count++;
     }
-    if (count > 0) { save(); console.log('[Auto-Cancel] 已取消 ' + count + ' 个超时预约'); }
+    if (count > 0) { console.log('[Auto-Cancel] 已取�?' + count + ' 个超时预�?); }
   }
   setInterval(cancelExpiredOrders, 5 * 60 * 1000);
   cancelExpiredOrders();
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`专家平台已启动: http://localhost:${PORT} (WebSocket ON)`);
+    console.log(`专家平台已启�? http://localhost:${PORT} (WebSocket ON)`);
   });
-}).catch(err => {
-  console.error('数据库初始化失败:', err);
-  process.exit(1);
-});
+// 数据库初始化失败会直接抛出异常退�?

@@ -1,9 +1,9 @@
 {
   "name": "expert-platform",
   "version": "1.0.0",
-  "main": "start.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node start.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

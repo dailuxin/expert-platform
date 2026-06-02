@@ -18,7 +18,7 @@ let autoSaveInterval = null;
 // 初始化数据库
 async function initDB() {
   SQL = await initSqlJs({
-    locateFile: (file) => require('path').join(__dirname, 'node_modules', 'sql.js', 'dist', file)
+    locateFile: (file) => require('sql.js/dist/sql-wasm.wasm')
   });
 
   // 从磁盘加载数据库（如果存在）

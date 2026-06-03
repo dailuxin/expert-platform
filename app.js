@@ -12,6 +12,12 @@ const pushService = require('./pushService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 健康检查路由（最早注册，不依赖数据库）
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', port: PORT, time: new Date().toISOString() });
+  console.log('[Health Check] /health called at', new Date().toISOString());
+});
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 

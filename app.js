@@ -812,6 +812,8 @@ app.get('*', (req, res) => {
 });
 
 initDB().then(() => {
+  console.log('[DEBUG] initDB resolved, creating HTTP server...');
+  try {
   // ===== WebSocket 实时通知服务器 (P1) =====
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server });
@@ -879,9 +881,21 @@ initDB().then(() => {
   cancelExpiredOrders();
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`专家平台已启动: http://localhost:${PORT} (WebSocket ON)`);
+    const msg = `专家平台已启动: http://localhost:${PORT} (WebSocket ON) at ${new Date().toISOString()}`;
+    console.log(msg);
+    console.error(msg);  // 同时输出到 stderr 确保 Railway 捕获
+    try { fs.writeFileSync('/tmp/startup-log.txt', msg); } catch(e) {}
   });
+  console.log('[DEBUG] About to call server.listen, PORT=', PORT);
+  } catch(e) {
+    const catchMsg = 'initDB.then() CATCH: ' + e.message + '\nStack: ' + e.stack;
+    console.error(catchMsg);
+    try { fs.writeFileSync('/tmp/startup-error.txt', catchMsg); } catch(e2) {}
+    process.exit(1);
+  }
 }).catch(err => {
-  console.error('数据库初始化失败:', err);
+  const errMsg = '数据库初始化失败: ' + err.message;
+  console.error(errMsg);
+  try { fs.writeFileSync('/tmp/startup-error.txt', errMsg); } catch(e) {}
   process.exit(1);
 });

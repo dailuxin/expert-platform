@@ -4,8 +4,8 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const os = require('os');
 
-// Railway 兼容：使用 /tmp 或系统临时目录
-const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(os.tmpdir(), 'expert-platform-data');
+// 多平台兼容：腾讯云托管 Volume > Railway Volume > 本地数据目录
+const DATA_DIR = process.env.DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
   try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch(e) { console.warn('无法创建数据目录，使用内存模式'); }
 }

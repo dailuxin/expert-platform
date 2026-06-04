@@ -95,100 +95,72 @@ async function sendMessage(toUserId){const input=document.getElementById("msgInp
 function showSendMessage(userId){renderMessageThread(userId,"");}
 function showLogin(){openModal("<h3>登录</h3><div class=\"form-group\"><label>用户名</label><input type=\"text\" id=\"loginUser\"></div><div class=\"form-group\"><label>密码</label><input type=\"password\" id=\"loginPass\"></div><button class=\"btn btn-primary\" onclick=\"doLogin()\">登录</button>");}
 async function doLogin(){const u=document.getElementById("loginUser").value,p=document.getElementById("loginPass").value;const r=await fetch(API+"/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:u,password:p})}).then(r=>r.json());if(r.success){closeModal();await me();renderHome();}else alert(r.error||"登录失败");}
-function showRegister(){openModal("<h3>注册</h3><div class=\"form-group\"><label>用户名</label><input type=\"text\" id=\"regUser\"></div><div class=\"form-group\"><label>密码</label><input type=\"password\" id=\"regPass\"></div><div class=\"form-group\"><label>确认密码</label><input type=\"password\" id=\"regPass2\"></div><div class=\"form-group\"><label>姓名</label><input type=\"text\" id=\"regName\"></div><div class=\"form-group\"><label>手机号</label><input type=\"text\" id=\"regPhone\"></div><div class=\"form-group\"><label>邮箱</label><input type=\"email\" id=\"regEmail\"></div><div class=\"form-group\"><label style=\"color:#667eea;font-size:13px;cursor:pointer\" onclick=\"toggleDisclaimer()\"><input type=\"checkbox\" id=\"regAgree\"> 我已阅读并同意<a href=\"#\" onclick=\"event.preventDefault();showDisclaimer()\">《服务条款与免责声明》</a></label></div><button class=\"btn btn-primary\" id=\"regBtn\" onclick=\"doRegister()\">注册</button><div id=\"disclaimerText\" style=\"display:none;margin-top:16px;padding:12px;background:#f7fafc;border-radius:8px;font-size:13px;line-height:1.7;color:#4a5568;max-height:200px;overflow-y:auto\"><strong>服务条款与免责声明</strong><br><br>1. 本平台仅提供信息展示与对接服务，不对专家的专业资质、服务效果作任何保证。<br>2. 用户与专家之间的咨询行为及产生的后果由双方自行负责，平台不承担任何连带责任。<br>3. 预约成功后请按时参加，如需取消请提前操作，费用按平台退款规则处理。<br>4. 专家发布的文章和观点仅代表专家本人，不代表本平台立场。<br>5. 用户需保证所填信息真实有效，不得利用平台从事违法活动。<br>6. 平台保留对违规账号封禁和相关服务调整的权利。<br>7. 如有争议，平台保留最终解释权。</div>");}
-async function doRegister(){if(!document.getElementById("regAgree").checked)return alert("请先阅读并同意《服务条款与免责声明》");const u=document.getElementById("regUser").value,p=document.getElementById("regPass").value,p2=document.getElementById("regPass2").value,n=document.getElementById("regName").value,ph=document.getElementById("regPhone").value,e=document.getElementById("regEmail").value;if(!u||!p)return alert("用户名和密码必填");if(p!==p2)return alert("两次密码不一致");const r=await fetch(API+"/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:u,password:p,real_name:n,phone:ph,email:e})}).then(r=>r.json());if(r.success){alert("注册成功，请登录");closeModal();showLogin();}else alert(r.error||"注册失败");}function toggleDisclaimer(){const el=document.getElementById("disclaimerText");if(el)el.style.display=el.style.display==="none"?"block":"none";}function showDisclaimer(){const el=document.getElementById("disclaimerText");if(el){el.style.display="block";el.scrollIntoView();}}
-async function logout(){await fetch(API+"/logout",{method:"POST"});currentUser=null;currentExpert=null;renderNav();renderHome();}
-async function renderProfile(){const u=currentUser,e=currentExpert;let h="<div class=\"section-title\">个人中心</div>";h+="<div class=\"card\"><div style=\"font-size:18px;font-weight:700\">"+escHtml(u.username)+"</div><div style=\"color:#718096;margin:4px 0\">"+escHtml(u.real_name||"")+"</div><div style=\"color:#718096\">"+escHtml(u.phone||"")+"</div></div>";if(e){const st={"pending":"审核中","approved":"已通过","rejected":"未通过","resubmit":"需修改"};h+='<div class="alert '+(e.audit_status==='approved'?'alert-success':'alert-warning')+'"></div>';}h+="<div class=\"card\"><h3>修改密码</h3><div class=\"form-group\"><label>原密码</label><input type=\"password\" id=\"oldPwd\"></div><div class=\"form-group\"><label>新密码</label><input type=\"password\" id=\"newPwd\"></div><div class=\"form-group\"><label>确认新密码</label><input type=\"password\" id=\"newPwd2\"></div><button class=\"btn btn-primary\" onclick=\"doChangePwd()\">修改密码</button></div>";if(!e)h+="<div class=\"card\"><button class=\"btn btn-primary\" onclick=\"renderExpertForm()\">填写专家资料</button></div>";else h+="<div class=\"card\"><button class=\"btn btn-primary\" onclick=\"renderExpertForm()\">编辑专家资料</button></div>";h+="<div class=\"card\"><h3>实名认证</h3><div id=\"verifResult\"></div><button class=\"btn btn-outline\" onclick=\"renderVerification()\">申请实名认证</button></div>";document.getElementById("app").innerHTML=h;renderVerification();}
-async function renderVerification(){const v=await fetch(API+"/verification").then(r=>r.json());const el=document.getElementById("verifResult");if(!v){el.innerHTML="<div style=\"color:#718096;margin-bottom:12px\">未提交认证</div>";}else{const st2={"pending":"审核中","approved":"已通过","rejected":"未通过"};el.innerHTML='<div class="alert '+(v.status==='approved'?'alert-success':'alert-warning')+'">认证状态：'+st2[v.status]+(v.remark?'<br>意见：'+escHtml(v.remark):'')+'</div>';}openModal("<h3>实名认证</h3><div class=\"form-group\"><label>真实姓名</label><input type=\"text\" id=\"vidName\"></div><div class=\"form-group\"><label>身份证号</label><input type=\"text\" id=\"vidNumber\"></div><button class=\"btn btn-primary\" onclick=\"submitVerification()\">提交认证</button>");}
-async function submitVerification(){const n=document.getElementById("vidName").value,id=document.getElementById("vidNumber").value;if(!n||!id)return alert("姓名和身份证号必填");const r=await fetch(API+"/verification",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({real_name:n,id_number:id})}).then(r=>r.json());if(r.success){closeModal();renderProfile();}else alert(r.error||"提交失败");}
-function renderExpertForm(){const e=currentExpert;openModal("<h3>"+(e?"编辑专家资料":"填写专家资料")+"</h3><div class=\"form-group\"><label>行业 *</label><select id=\"expInd\"><option>人工智能</option><option>数据科学</option><option>软件开发</option><option>产品设计</option><option>市场营销</option><option>金融投资</option><option>法律咨询</option><option>医疗健康</option><option>教育培训</option><option>其他</option></select></div><div class=\"form-group\"><label>职称</label><input type=\"text\" id=\"expTitle\" value=\""+(e?escJs(e.title):"")+"\"></div><div class=\"form-group\"><label>个人简介</label><textarea id=\"expIntro\">"+(e?escJs(e.self_intro):"")+"</textarea></div><div class=\"form-group\"><label>主要业绩</label><textarea id=\"expAch\">"+(e?escJs(e.achievements):"")+"</textarea></div><div class=\"form-group\"><label>咨询费用（元/次）</label><input type=\"number\" id=\"expFee\" value=\""+(e?e.consult_fee:0)+"\"></div><div style=\"font-size:13px;color:#718096;margin-bottom:12px\">提示：资料提交后需要3-5个工作日审核，审核期间不可修改。</div><button class=\"btn btn-primary\" onclick=\"submitExpertForm()\">提交</button>");if(e){setTimeout(()=>{try{document.getElementById("expInd").value=e.industry;}catch(ex){}},100);}}
-async function submitExpertForm(){const d={industry:document.getElementById("expInd").value,title:document.getElementById("expTitle").value,self_intro:document.getElementById("expIntro").value,achievements:document.getElementById("expAch").value,consult_fee:document.getElementById("expFee").value};const r=await fetch(API+"/expert/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(r=>r.json());if(r.success){closeModal();alert("资料已提交，请等待审核（预计3-5个工作日）");renderProfile();}else alert(r.error||"提交失败");}
-async function doChangePwd(){const o=document.getElementById("oldPwd").value,n=document.getElementById("newPwd").value,n2=document.getElementById("newPwd2").value;if(!o||!n)return alert("请填写完整");if(n!==n2)return alert("两次新密码不一致");const r=await fetch(API+"/change-password",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({oldPassword:o,newPassword:n})}).then(r=>r.json());if(r.success){alert("密码修改成功");renderProfile();}else alert(r.error||"修改失败");}
-async function renderArticles(){if(!currentExpert)return;const list=await fetch(API+"/experts/"+currentExpert.id+"/articles").then(r=>r.json());let h="<div class=\"section-title\">我的文章</div><div style=\"margin-bottom:16px\"><button class=\"btn btn-primary\" onclick=\"showArticleForm()\">写文章</button></div>";if(!list||!list.length){h+="<div class=\"empty\"><div class=\"icon\">文章</div>暂无文章</div>";}else{for(const a of list){h+="<div class=\"article-preview\" onclick=\"renderArticle("+a.id+")\"><div style=\"font-weight:600;font-size:15px\">"+escHtml(a.title)+"</div><div style=\"font-size:12px;color:#a0aec0;margin-top:4px\">"+(a.status==="draft"?"草稿":"已发布")+" · "+a.views+"次阅读 · "+(a.updated_at||a.created_at)+"</div></div>";}}document.getElementById("app").innerHTML=h;}
-async function renderArticle(id){const a=await fetch(API+"/articles/"+id).then(r=>r.json());if(!a)return;let h="<div class=\"card\"><div style=\"font-size:22px;font-weight:700;margin-bottom:8px\">"+escHtml(a.title)+"</div><div style=\"font-size:13px;color:#718096;margin-bottom:16px\">"+a.views+"次阅读 · "+(a.created_at||"")+"</div><div style=\"font-size:15px;line-height:1.8\">"+(a.content||"").replace(/\n/g,"<br>")+"</div></div>";if(currentExpert&&currentExpert.id===a.expert_id)h+="<div class=\"card\"><button class=\"btn btn-sm btn-outline\" onclick=\"showArticleForm("+a.id+")\">编辑</button> <button class=\"btn btn-sm btn-danger\" onclick=\"deleteArticle("+a.id+")\">删除</button></div>";document.getElementById("app").innerHTML=h;}
-function showArticleForm(articleId){const e=currentExpert;if(!e)return;let h="<h3>"+(articleId?"编辑文章":"写文章")+"</h3><div class=\"form-group\"><label>标题</label><input type=\"text\" id=\"artTitle\"></div><div class=\"form-group\"><label>内容（支持Markdown）</label><textarea id=\"artContent\" style=\"min-height:200px\"></textarea></div><div style=\"display:flex;gap:10px\"><button class=\"btn btn-primary\" onclick=\"submitArticle("+articleId+",'published')\">发布</button><button class=\"btn btn-outline\" onclick=\"submitArticle("+articleId+",'draft')\">存草稿</button></div>";openModal(h);if(articleId){fetch(API+"/articles/"+articleId).then(r=>r.json()).then(a=>{if(a){document.getElementById("artTitle").value=a.title||"";document.getElementById("artContent").value=a.content||"";}});}}
-async function submitArticle(id,status){const t=document.getElementById("artTitle").value,c=document.getElementById("artContent").value;if(!t||!c)return alert("标题和内容必填");if(id){await fetch(API+"/articles/"+id,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:t,content:c,status:status})});}else{await fetch(API+"/articles",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:t,content:c,status:status})});}closeModal();renderArticles();}
-async function deleteArticle(id){if(!confirm("确定删除？"))return;await fetch(API+"/articles/"+id,{method:"DELETE"});alert("已删除");renderArticles();}
-function renderAdmin(){let h="<div class=\"section-title\">管理后台</div><div class=\"tab-bar\" id=\"adminTabs\"><span class=\"tab active\" onclick=\"adminTab('overview')\">概览</span><span class=\"tab\" onclick=\"adminTab('pending')\">待审核</span><span class=\"tab\" onclick=\"adminTab('verif')\">实名认证</span><span class=\"tab\" onclick=\"adminTab('users')\">用户管理</span><span class=\"tab\" onclick=\"adminTab('orders')\">订单管理</span><span class=\"tab\" onclick=\"adminTab('refunds')\">退款管理</span><span class=\"tab\" onclick=\"adminTab('revenue')\">营收统计</span><span class=\"tab\" onclick=\"adminTab('logs')\">登录日志</span></div><div id=\"adminContent\"></div>";document.getElementById("app").innerHTML=h;adminTab("overview");}
-function adminTab(tab){document.querySelectorAll("#adminTabs .tab").forEach(t=>t.classList.remove("active"));event.target.classList.add("active");if(tab==="overview")adminOverview();if(tab==="pending")adminPending();if(tab==="verif")adminVerif();if(tab==="users")adminUsers();if(tab==="orders")adminOrders();if(tab==="refunds")adminRefunds();if(tab==="logs")adminLogs();if(tab==="revenue")adminRevenue();}
-async function adminOverview(){const s=await fetch(API+"/admin/stats").then(r=>r.json());let h="<div class=\"card\" style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px\">";h+="<div style=\"background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+(s.users||0)+"</div><div style=\"font-size:13px;opacity:.9\">用户数</div></div>";h+="<div style=\"background:linear-gradient(135deg,#38a169,#2f855a);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+(s.approved||0)+"</div><div style=\"font-size:13px;opacity:.9\">已通过专家</div></div>";h+="<div style=\"background:linear-gradient(135deg,#d69e2,#9f7aea);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+(s.pending||0)+"</div><div style=\"font-size:13px;opacity:.9\">待审核</div></div>";h+="<div style=\"background:linear-gradient(135deg,#f6ad55,#ed8936);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+(s.today_login||0)+"</div><div style=\"font-size:13px;opacity:.9\">今日登录</div></div>";h+="<div style=\"background:linear-gradient(135deg,#fc8181,#e53e3e);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+(s.abnormal_login||0)+"</div><div style=\"font-size:13px;opacity:.9\">异常登录</div></div>";h+="<div style=\"background:linear-gradient(135deg,#4fd1c5,#38b2ac);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+(s.paid_orders||0)+"/"+(s.total_orders||0)+"</div><div style=\"font-size:13px;opacity:.9\">已支付/总订单</div></div>";h+="</div>";document.getElementById("adminContent").innerHTML=h;}
-async function adminPending(){const list=await fetch(API+"/admin/experts/pending").then(r=>r.json());let h="<div class=\"card\"><table><tr><th>姓名</th><th>行业</th><th>职称</th><th>操作</th></tr>";for(const e of(list||[])){h+="<tr><td>"+escHtml(e.real_name||"")+"</td><td>"+escHtml(e.industry||"")+"</td><td>"+escHtml(e.title||"")+"</td><td><button class=\"btn btn-sm btn-primary\" onclick=\"adminAudit("+e.id+",'approve')\">通过</button> <button class=\"btn btn-sm btn-danger\" onclick=\"adminAudit("+e.id+",'reject')\">驳回</button> <button class=\"btn btn-sm btn-outline\" onclick=\"adminAudit("+e.id+",'resubmit')\">补充修改</button></td></tr>";}h+="</table></div>";document.getElementById("adminContent").innerHTML=h;}
-async function adminAudit(id,action){const remark=action==="approve"?"":prompt("请输入审核意见：");if(action!=="approve"&&remark===null)return;await fetch(API+"/admin/experts/"+id+"/audit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:action,remark:remark})});alert("操作成功");adminPending();}
-async function adminVerif(){const list=await fetch(API+"/admin/verifications").then(r=>r.json());let h="<div class=\"card\"><table><tr><th>用户</th><th>姓名</th><th>状态</th><th>操作</th></tr>";for(const v of(list||[])){h+="<tr><td>"+escHtml(v.username||"")+"</td><td>"+escHtml(v.real_name||"")+"</td><td>"+(v.status==="pending"?"待审核":v.status==='approved'?"已通过":"未通过")+"</td><td>"+(v.status==="pending"?"<button class=\"btn btn-sm btn-primary\" onclick=\"adminVerifApprove("+v.id+")\">通过</button> <button class=\"btn btn-sm btn-danger\" onclick=\"adminVerifReject("+v.id+")\">驳回</button>":"")+"</td></tr>";}h+="</table></div>";document.getElementById("adminContent").innerHTML=h;}
-async function adminVerifApprove(id){await fetch(API+"/admin/verification/"+id+"/approve",{method:"POST"});alert("已通过");adminVerif();}
-async function adminVerifReject(id){const r=prompt("请输入拒绝原因：");if(r===null)return;await fetch(API+"/admin/verification/"+id+"/reject",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({remark:r})});alert("已驳回");adminVerif();}
-async function adminUsers(){const list=await fetch(API+"/admin/users").then(r=>r.json());let h="<div class=\"card\"><table><tr><th>用户名</th><th>姓名</th><th>角色</th><th>状态</th><th>操作</th></tr>";for(const u of(list||[])){h+="<tr><td>"+escHtml(u.username)+"</td><td>"+escHtml(u.real_name||"")+"</td><td>"+u.role+"</td><td>"+(u.status==="active"?"正常":"禁用")+"</td><td><button class=\"btn btn-sm "+(u.status==="active"?"btn-danger":"btn-primary")+"\" onclick=\"adminToggle("+u.id+")\">"+(u.status==="active"?"禁用":"启用")+"</button></td></tr>";}h+="</table></div>";document.getElementById("adminContent").innerHTML=h;}
-async function adminToggle(id){await fetch(API+"/admin/users/"+id+"/toggle",{method:"PUT"});adminUsers();}
-async function adminOrders(){const list=await fetch(API+"/admin/orders").then(r=>r.json());let h="<div class=\"card\"><table><tr><th>ID</th><th>专家</th><th>用户</th><th>日期</th><th>金额</th><th>状态</th></tr>";for(const b of(list||[])){h+="<tr><td>"+b.id+"</td><td>"+escHtml(b.expert_name||"")+"</td><td>"+escHtml(b.user_name||"")+"</td><td>"+(b.booking_date||"")+"</td><td>¥"+(b.amount||0)+"</td><td><span class=\"status-badge status-"+b.status+"\">"+(ORDER_STATUS[b.status]||b.status)+"</span></td></tr>";}h+="</table></div>";document.getElementById("adminContent").innerHTML=h;}
-async function adminRefunds(){const list=await fetch(API+"/admin/refunds").then(r=>r.json());let h="<div class=\"card\"><table><tr><th>ID</th><th>用户</th><th>订单ID</th><th>金额</th><th>原因</th><th>状态</th><th>操作</th></tr>";for(const rf of(list||[])){h+="<tr><td>"+rf.id+"</td><td>"+escHtml(rf.username||"")+"</td><td>"+rf.booking_id+"</td><td>¥"+(rf.amount||0)+"</td><td>"+escHtml(rf.reason||"")+"</td><td>"+rf.status+"</td><td>"+(rf.status==="pending"?"<button class=\"btn btn-sm btn-primary\" onclick=\"adminRefundApprove("+rf.id+")\">通过</button> <button class=\"btn btn-sm btn-danger\" onclick=\"adminRefundReject("+rf.id+")\">驳回</button>":"")+"</td></tr>";}h+="</table></div>";document.getElementById("adminContent").innerHTML=h;}
-async function adminRefundApprove(id){await fetch(API+"/admin/refunds/"+id+"/approve",{method:"POST"});alert("退款已通过");adminRefunds();}
-async function adminRefundReject(id){await fetch(API+"/admin/refunds/"+id+"/reject",{method:"POST"});alert("退款已驳回");adminRefunds();}
-async function adminLogs(){const list=await fetch(API+"/admin/logs").then(r=>r.json());let h="<div class=\"card\"><table><tr><th>用户名</th><th>IP</th><th>结果</th><th>时间</th></tr>";for(const l of(list||[])){h+="<tr><td>"+escHtml(l.username||"")+"</td><td>"+(l.ip||"")+"</td><td>"+(l.success?"成功":"失败")+"</td><td>"+(l.created_at||"")+"</td></tr>";}h+="</table></div>";document.getElementById("adminContent").innerHTML=h;}
-function openModal(content){document.getElementById("modalContent").innerHTML=content;document.getElementById("modal").style.display="flex";}
-function closeModal(){document.getElementById("modal").style.display="none";}
-(async function(){const params=new URLSearchParams(window.location.search);urlIndustry=params.get("industry");await me();renderHome();if(urlIndustry){loadExperts(1,urlIndustry);}})();
-function renderWallet(){
-  fetch(API+"/expert/wallet").then(r=>r.json()).then(w=>{
-    let h="<div class=\"section-title\">我的收益</div>";
-    h+="<div class=\"card\" style=\"background:linear-gradient(135deg,#38a169,#2f855a);color:#fff;padding:24px;border-radius:12px\">";
-    h+="<div style=\"font-size:14px;opacity:.9\">可提现余额</div>";
-    h+="<div style=\"font-size:32px;font-weight:700;margin:8px 0\">¥"+(w.balance||0)+"</div>";
-    h+="<div style=\"font-size:13px;opacity:.8\">累计收入：¥"+(w.total_income||0)+" | 累计提现：¥"+(w.total_withdrawn||0)+" | 提现中：¥"+(w.pending_withdrawal||0)+"</div>";
-    h+="</div>";
-    h+="<div class=\"card\"><h3>申请提现</h3>";
-    h+="<div class=\"form-group\"><label>提现金额（¥）</label><input type=\"number\" id=\"wdAmount\" min=\"100\" max=\""+(w.balance||0)+"\" placeholder=\"最低100元\"></div>";
-    h+="<div class=\"form-group\"><label>收款人姓名</label><input type=\"text\" id=\"wdName\" placeholder=\"与银行卡一致\"></div>";
-    h+="<div class=\"form-group\"><label>银行卡号</label><input type=\"text\" id=\"wdNumber\" placeholder=\"银行卡号\"></div>";
-    h+="<div class=\"form-group\"><label>开户行</label><input type=\"text\" id=\"wdBank\" placeholder=\"如：中国工商银行\"></div>";
-    h+="<button class=\"btn btn-primary\" onclick=\"doWithdraw()\">提交提现申请</button>";
-    h+="</div>";
-    h+="<div class=\"card\"><div class=\"section-title\">提现记录</div><div id=\"wdList\">加载中...</div></div>";
-    document.getElementById("app").innerHTML=h;
-    loadWithdrawals();
-  });
+function showRegister(){
+  openModal(
+    '<h3>注册</h3>' +
+    '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+      '<button class="tab-btn active" onclick="regSwitchRole(\'personal\')" id="regTabPersonal">个人用户</button>' +
+      '<button class="tab-btn" onclick="regSwitchRole(\'enterprise\')" id="regTabEnterprise">企业用户</button>' +
+      '<button class="tab-btn" onclick="regSwitchRole(\'expert\')" id="regTabExpert">专家</button>' +
+    '</div>' +
+    '<div id="regFormFields">' +
+      '<div class="form-group"><label>用户名 *</label><input type="text" id="regUser"></div>' +
+      '<div class="form-group"><label>密码 *</label><input type="password" id="regPass"></div>' +
+      '<div class="form-group"><label>确认密码 *</label><input type="password" id="regPass2"></div>' +
+      '<div class="form-group"><label>姓名 *</label><input type="text" id="regName"></div>' +
+      '<div class="form-group"><label>手机号</label><input type="text" id="regPhone"></div>' +
+      '<div class="form-group"><label>邮箱</label><input type="email" id="regEmail"></div>' +
+      '<div id="regExpertFields" style="display:none">' +
+        '<div class="form-group"><label>行业 *</label><select id="regIndustry"><option value="">请选择</option><option>人工智能</option><option>数据科学</option><option>软件开发</option><option>产品设计</option><option>市场营销</option><option>金融投资</option><option>法律咨询</option><option>医疗健康</option><option>教育培训</option><option>其他</option></select></div>' +
+        '<div class="form-group"><label>职称</label><input type="text" id="regTitle"></div>' +
+        '<div class="form-group"><label>个人简介</label><textarea id="regIntro" rows="3"></textarea></div>' +
+      '</div>' +
+      '<div id="regEnterpriseFields" style="display:none">' +
+        '<div class="form-group"><label>企业名称 *</label><input type="text" id="regCompany"></div>' +
+        '<div class="form-group"><label>统一社会信用代码 *</label><input type="text" id="regCreditCode"></div>' +
+        '<div class="form-group"><label>联系人职务</label><input type="text" id="regContactTitle"></div>' +
+      '</div>' +
+      '<div class="form-group"><label style="color:#667eea;font-size:13px;cursor:pointer" onclick="toggleDisclaimer()"><input type="checkbox" id="regAgree"> 我已阅读并同意<a href="#" onclick="event.preventDefault();showDisclaimer()">《服务条款与免责声明》</a></label></div>' +
+      '<button class="btn btn-primary" id="regBtn" onclick="doRegister()">注册</button>' +
+    '</div>' +
+    '<div id="disclaimerText" style="display:none;margin-top:16px;padding:16px;background:#f7fafc;border-radius:8px;font-size:13px;line-height:1.8;color:#4a5568;max-height:260px;overflow-y:auto"></div>'
+  );
 }
-
-async function doWithdraw(){
-  const amt=parseInt(document.getElementById("wdAmount").value);
-  if(!amt||amt<100)return alert("最低提现100元");
-  const r=await fetch(API+"/expert/withdraw",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:amt,account_name:document.getElementById("wdName").value,account_number:document.getElementById("wdNumber").value,bank_name:document.getElementById("wdBank").value})});
-  const j=await r.json();
-  if(j.success){alert("提现申请已提交，预计3-5个工作日到账");renderWallet();}else alert(j.error||"申请失败");
+function regSwitchRole(role){
+  document.getElementById('regTabPersonal').classList.remove('active');
+  document.getElementById('regTabEnterprise').classList.remove('active');
+  document.getElementById('regTabExpert').classList.remove('active');
+  document.getElementById('regTab'+role.charAt(0).toUpperCase()+role.slice(1)).classList.add('active');
+  document.getElementById('regExpertFields').style.display = role==='expert'?'block':'none';
+  document.getElementById('regEnterpriseFields').style.display = role==='enterprise'?'block':'none';
+  window._regRole = role;
 }
+window._regRole = 'personal';
 
-async function loadWithdrawals(){
-  const list=await fetch(API+"/expert/withdrawals").then(r=>r.json());
-  let h="";
-  if(!list||!list.length){h="<div style=\"color:#a0aec0;padding:12px 0\">暂无提现记录</div>";}else{
-    h="<table><tr><th>金额</th><th>状态</th><th>时间</th></tr>";
-    for(const w of list){h+="<tr><td>¥"+w.amount+"</td><td>"+(w.status==='pending'?'待处理':w.status==='approved'?'已通过':'已驳回')+"</td><td>"+(w.created_at||'')+"</td></tr>";}h+="</table>";
+async function doRegister(){
+  if(!document.getElementById("regAgree").checked) return alert("请先阅读并同意《服务条款与免责声明》");
+  const role = window._regRole || 'personal';
+  const u=document.getElementById("regUser").value,p=document.getElementById("regPass").value,
+        p2=document.getElementById("regPass2").value,n=document.getElementById("regName").value,
+        ph=document.getElementById("regPhone").value,e=document.getElementById("regEmail").value;
+  if(!u||!p) return alert("用户名和密码必填");
+  if(p!==p2) return alert("两次密码不一致");
+  if(!n) return alert("姓名必填");
+  const body = {username:u,password:p,real_name:n,phone:ph,email:e,role:role};
+  if(role==='expert'){
+    const ind=document.getElementById("regIndustry").value;
+    if(!ind) return alert("请选择行业");
+    body.industry=ind; body.title=document.getElementById("regTitle").value;
+    body.self_intro=document.getElementById("regIntro").value;
   }
-  document.getElementById("wdList").innerHTML=h;
-}
-
-function adminRevenue(){
-  fetch(API+"/admin/revenue").then(r=>r.json()).then(d=>{
-    let h="<div class=\"section-title\">营收统计</div>";
-    h+="<div class=\"card\" style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px\">";
-    h+="<div style=\"background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">¥"+(d.total_revenue||0)+"</div><div style=\"font-size:13px;opacity:.9\">累计平台收入</div></div>";
-    h+="<div style=\"background:linear-gradient(135deg,#38a169,#2f855a);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">¥"+(d.total_paid_out||0)+"</div><div style=\"font-size:13px;opacity:.9\">累计已打款</div></div>";
-    h+="<div style=\"background:linear-gradient(135deg,#f6ad55,#ed8936);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">¥"+(d.pending_withdrawals||0)+"</div><div style=\"font-size:13px;opacity:.9\">待处理提现</div></div>";
-    h+="<div style=\"background:linear-gradient(135deg,#4fd1c5,#38b2ac);color:#fff;padding:20px;border-radius:12px\"><div style=\"font-size:28px;font-weight:700\">"+((d.commission_rate||0)*100)+"%<small style=\"font-size:14px\">比例</small></div><div style=\"font-size:13px;opacity:.9\">平台抽成比</div></div>";
-    h+="</div>";
-    h+="<div class=\"card\"><h3>平台配置</h3><div class=\"form-group\"><label>平台抽成比例（0-1，如 0.15 表示 15%）</label><input type=\"number\" id=\"cfgRate\" step=\"0.01\" min=\"0\" max=\"1\" value=\""+(d.commission_rate||0.15)+"\"></div><button class=\"btn btn-primary\" onclick=\"saveCommissionRate()\">保存配置</button></div>";
-    document.getElementById("adminContent").innerHTML=h;
-  });
-}
-
-async function saveCommissionRate(){
-  const v=parseFloat(document.getElementById("cfgRate").value);
-  if(isNaN(v)||v<0||v>1)return alert("请输入0-1之间的数字");
-  await fetch(API+"/admin/config/commission_rate",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:v})});
-  alert("保存成功");adminRevenue();
-}
-
-
-// 通知未读数量轮询
+  if(role==='enterprise'){
+    const c=document.getElementById("regCompany").value, cc=document.getElementById("regCreditCode").value;
+    if(!c||!cc) return alert("企业名称和统一社会信用代码必填");
+    body.company_name=c; body.credit_code=cc; body.contact_title=document.getElementById("regContactTitle").value;
+  }
+  const r=await fetch(API+"/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.json());
+  if(r.success){alert("注册成功，请登录");closeModal();showLogin();}else alert(r.error||"注册失败");
+} 通知未读数量轮询
 async function loadUnreadCount(){
   try {
     const d = await fetch(API+"/notifications/unread-count").then(r=>r.json());

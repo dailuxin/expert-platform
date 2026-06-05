@@ -160,7 +160,8 @@ async function doRegister(){
   }
   const r=await fetch(API+"/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.json());
   if(r.success){alert("注册成功，请登录");closeModal();showLogin();}else alert(r.error||"注册失败");
-} 通知未读数量轮询
+}
+// 通知未读数量轮询
 async function loadUnreadCount(){
   try {
     const d = await fetch(API+"/notifications/unread-count").then(r=>r.json());

@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-const { initDB, query, get, run, save, sanitize, sanitizeObj } = require('./database.js');
+const { initDB, query, get, run, saveToDisk, sanitize, sanitizeObj } = require('./database.js');
 const emailService = require('./emailService');
 const pushService = require('./pushService');
 
@@ -54,13 +54,23 @@ function requireExpert(req, res, next) {
 
 // ===== Auth =====
 app.post('/api/register', (req, res) => {
-  const { username, password, real_name, phone, email } = sanitizeObj(req.body);
+  const { username, password, real_name, phone, email, role, industry, title, self_intro, company_name, credit_code, contact_title } = sanitizeObj(req.body);
   if (!username || !password) return res.status(400).json({ error: '用户名和密码必填' });
   if (get('SELECT id FROM users WHERE username = ?', [username]))
     return res.status(400).json({ error: '用户名已存在' });
   const hash = bcrypt.hashSync(password, 12);
-  run('INSERT INTO users (username, password, real_name, phone, email) VALUES (?, ?, ?, ?, ?)',
-    [username, hash, real_name || '', phone || '', email || '']);
+  const userRole = (role === 'expert' || role === 'enterprise') ? role : 'user';
+  run('INSERT INTO users (username, password, real_name, phone, email, role) VALUES (?, ?, ?, ?, ?, ?)',
+    [username, hash, real_name || '', phone || '', email || '', userRole]);
+  const newUser = get('SELECT id FROM users WHERE username = ?', [username]);
+  if (userRole === 'expert' && newUser) {
+    run('INSERT INTO experts (user_id, industry, title, self_intro, audit_status) VALUES (?, ?, ?, ?, ?)',
+      [newUser.id, industry || '', title || '', self_intro || '', 'pending']);
+  }
+  if (userRole === 'enterprise' && newUser) {
+    run('INSERT INTO companies (user_id, company_name, business_scope, contact_person) VALUES (?, ?, ?, ?)',
+      [newUser.id, company_name || '', credit_code || '', contact_title || '']);
+  }
   res.json({ success: true });
 });
 
@@ -302,7 +312,7 @@ app.post('/api/bookings/:id/pay', requireAuth, (req, res) => {
   // Notify user
   run('INSERT INTO notifications (user_id, type, title, content, related_id) VALUES (?, ?, ?, ?, ?)',
     [req.session.userId, 'booking_update', '支付成功', `您已支付 ¥${amount}，平台手续费 ¥${platformFee}`, booking.id]);
-  save();
+  saveToDisk();
   res.json({ success: true, status: 'paid', platform_fee: platformFee, expert_income: expertIncome });
 });
 
@@ -626,7 +636,7 @@ app.post('/api/expert/withdraw', requireExpert, (req, res) => {
     run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)',
       [admin.id, 'withdrawal', '提现申请', `专家ID ${req.expertId} 申请提现 ¥${amount}`]);
   }
-  save();
+  saveToDisk();
   res.json({ success: true });
 });
 
@@ -664,7 +674,7 @@ app.post('/api/admin/withdrawals/:id/approve', requireAdmin, (req, res) => {
       tag: 'withdrawal-' + w.id
     }).catch(e => console.error('推送失败:', e.message));
   }
-  save();
+  saveToDisk();
   res.json({ success: true });
 });
 
@@ -680,7 +690,7 @@ app.post('/api/admin/withdrawals/:id/reject', requireAdmin, (req, res) => {
     run('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)',
       [expert.user_id, 'withdrawal', '提现被驳回', `您的提现申请被驳回：${remark || '未说明'}`]);
   }
-  save();
+  saveToDisk();
   res.json({ success: true });
 });
 
@@ -699,7 +709,7 @@ app.put('/api/admin/config/:key', requireAdmin, (req, res) => {
   } else {
     run('INSERT INTO platform_config (key, value) VALUES (?, ?)', [req.params.key, String(value)]);
   }
-  save();
+  saveToDisk();
   res.json({ success: true });
 });
 
@@ -875,7 +885,7 @@ initDB().then(() => {
       }
       count++;
     }
-    if (count > 0) { save(); console.log('[Auto-Cancel] 已取消 ' + count + ' 个超时预约'); }
+    if (count > 0) { saveToDisk(); console.log('[Auto-Cancel] 已取消 ' + count + ' 个超时预约'); }
   }
   setInterval(cancelExpiredOrders, 5 * 60 * 1000);
   cancelExpiredOrders();
